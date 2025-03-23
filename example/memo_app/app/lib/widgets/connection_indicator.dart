@@ -38,7 +38,9 @@ class ConnectionIndicator extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              status == ConnectionStatus.connected ? 'MCP Connected' : 'MCP Disconnected',
+              status == ConnectionStatus.connected
+                  ? 'MCP Connected'
+                  : 'MCP Disconnected',
               style: TextStyle(
                 fontSize: 12,
                 color:

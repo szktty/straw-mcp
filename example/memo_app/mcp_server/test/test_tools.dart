@@ -506,7 +506,7 @@ void main() async {
   final testDir = Directory(path.dirname(currentScriptPath));
   // Navigate to the bin directory (../bin from test directory)
   final serverPath = path.join(testDir.parent.path, 'bin', 'mcp_server.dart');
-  
+
   print('Using server path: $serverPath');
 
   // Path to the log file

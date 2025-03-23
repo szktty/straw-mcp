@@ -68,7 +68,9 @@ class HomeScreen extends StatelessWidget {
               final selectedId = memoService.selectedMemoId.value;
 
               if (memos.isEmpty) {
-                return const Center(child: Text('No memos. Please create a new memo.'));
+                return const Center(
+                  child: Text('No memos. Please create a new memo.'),
+                );
               }
 
               return ListView.builder(
@@ -109,7 +111,9 @@ class HomeScreen extends StatelessWidget {
               final selectedMemo = memoService.selectedMemo;
 
               if (selectedMemo == null) {
-                return const Center(child: Text('Please select a memo or create a new one.'));
+                return const Center(
+                  child: Text('Please select a memo or create a new one.'),
+                );
               }
 
               return MemoScreen(memo: selectedMemo, memoService: memoService);
