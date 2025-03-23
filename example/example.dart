@@ -43,7 +43,7 @@ Future<void> runServer() async {
   print('Starting echo server...');
 
   final handler = createEchoServer();
-  
+
   print('Serving via stdio...');
   await serveStdio(handler);
 }
@@ -52,9 +52,7 @@ Future<void> runServer() async {
 Future<void> runClient() async {
   print('Starting echo client...');
 
-  final client = StreamClient(
-    options: StreamClientOptions.stdio(),
-  );
+  final client = StreamClient(options: StreamClientOptions.stdio());
 
   try {
     await connectAndUseEchoTool(client);
@@ -114,10 +112,7 @@ Future<void> runBoth() async {
 
 /// Creates and returns an MCP server with echo functionality.
 ProtocolHandler createEchoServer() {
-  return ProtocolHandler(
-    'MCP Echo Server',
-    '1.0.0',
-    [
+  return ProtocolHandler('MCP Echo Server', '1.0.0', [
       withToolCapabilities(listChanged: true),
       withResourceCapabilities(subscribe: false, listChanged: true),
       withPromptCapabilities(listChanged: true),
@@ -125,8 +120,7 @@ ProtocolHandler createEchoServer() {
       withInstructions(
         'This is a simple MCP echo server that demonstrates basic functionality.',
       ),
-    ],
-  )
+    ])
     // Add a simple echo tool
     ..addTool(
       newTool('echo', [
@@ -150,11 +144,9 @@ ProtocolHandler createEchoServer() {
 }
 
 /// Common client logic to connect and use the echo tool.
-Future<void> connectAndUseEchoTool(
-  Client client,
-) async {
+Future<void> connectAndUseEchoTool(Client client) async {
   print('Connecting to server...');
-  
+
   // Initialize the connection
   final initResult = await client.initialize(
     InitializeRequest(
@@ -166,46 +158,49 @@ Future<void> connectAndUseEchoTool(
       capabilities: ClientCapabilities(),
     ),
   );
-  
+
   print(
     'Connected to server: ${initResult.serverInfo.name} ${initResult.serverInfo.version}',
   );
-  
+
   // List available tools
   print('Requesting available tools...');
   final toolsResult = await client.listTools(ListToolsRequest());
-  
+
   print('Available tools: ${toolsResult.tools.map((t) => t.name).join(', ')}');
-  
+
   // Try calling the echo tool
   final echoTool = toolsResult.tools.where((t) => t.name == 'echo').firstOrNull;
-  
+
   if (echoTool != null) {
     print('Calling echo tool...');
-    
+
     // Call the echo tool multiple times with different messages
-    for (final message in ['Hello, MCP!', 'Echo test message', 'Final echo test']) {
+    for (final message in [
+      'Hello, MCP!',
+      'Echo test message',
+      'Final echo test',
+    ]) {
       final echoResult = await client.callTool(
-        CallToolRequest(
-          name: 'echo',
-          arguments: {'message': message},
-        ),
+        CallToolRequest(name: 'echo', arguments: {'message': message}),
       );
-      
+
       // Display the result
-      final resultText = echoResult.content.firstWhere(
-        (c) => c is TextContent,
-        orElse: () => TextContent(text: 'No text response'),
-      ) as TextContent;
-      
+      final resultText =
+          echoResult.content.firstWhere(
+                (c) => c is TextContent,
+                orElse: () => TextContent(text: 'No text response'),
+              )
+              as TextContent;
+
       print('Echo result: ${resultText.text}');
-      
+
       // Brief pause between calls
       await Future.delayed(Duration(milliseconds: 300));
     }
   } else {
     print('Echo tool not found');
   }
-  
+
   print('Echo client operations completed successfully');
 }
