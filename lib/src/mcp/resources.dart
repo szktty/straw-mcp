@@ -138,6 +138,7 @@ class ResourceUpdatedNotification extends Notification {
 
 /// Base class for annotated objects in the MCP protocol.
 class Annotated {
+  /// Creates an annotated object.
   Annotated({this.audience, this.priority});
 
   /// Creates annotations from a JSON map.
@@ -157,7 +158,10 @@ class Annotated {
     return Annotated(audience: audience, priority: json['priority'] as double?);
   }
 
+  /// The intended audience for the object.
   final List<Role>? audience;
+
+  /// The priority of the object.
   final double? priority;
 
   /// Converts annotations to a JSON map.
@@ -349,6 +353,7 @@ class TextResourceContents implements ResourceContents {
 
 /// Represents binary resource contents.
 class BlobResourceContents implements ResourceContents {
+  /// Creates blob resource contents.
   BlobResourceContents({required this.uri, required this.blob, this.mimeType});
 
   /// Creates blob resource contents from a JSON map.
