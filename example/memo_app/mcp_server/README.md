@@ -1,64 +1,64 @@
-# MemoMCP サーバー
+# MemoMCP Server
 
-MemoAppとClaude Desktopを連携するためのMCPサーバーです。
+An MCP server that integrates MemoApp with Claude Desktop.
 
-## 機能
+## Features
 
-- メモの作成、一覧取得、削除などの操作をClaude Desktopから実行できるようにします
-- MemoAppとの連携によって、AIアシスタントがメモ管理をサポートします
+- Enables memo creation, listing, and deletion operations from Claude Desktop
+- Supports AI assistant in memo management through integration with MemoApp
 
-## 提供ツール
+## Provided Tools
 
-本サーバーは以下のツールを提供します：
+This server provides the following tools:
 
-- **create-memo**: 新規メモを作成します
-- **list-memos**: 保存されているメモの一覧を取得します
-- **delete-memo**: 指定されたIDのメモを削除します
+- **create-memo**: Creates a new memo
+- **list-memos**: Retrieves a list of saved memos
+- **delete-memo**: Deletes a memo with the specified ID
 
-## 提供リソース
+## Provided Resources
 
-本サーバーは以下のリソースを提供します：
+This server provides the following resources:
 
-- **memo://list**: メモ一覧（テキスト形式）
+- **memo://list**: Memo list (in text format)
 
-## 使い方
+## Usage
 
-### 前提条件
+### Prerequisites
 
-- Dart SDK (3.7.0以上)
-- MemoApp（APIエンドポイントが利用可能な状態）
-- Claude Desktop（MCP機能対応版）
+- Dart SDK (3.7.0 or higher)
+- MemoApp (with available API endpoint)
+- Claude Desktop (MCP-enabled version)
 
-### インストール
+### Installation
 
 ```bash
-# 依存関係のインストール
+# Install dependencies
 dart pub get
 ```
 
-### 実行
+### Execution
 
 ```bash
-# 開発モードで実行
+# Run in development mode
 dart bin/mcp_server.dart --api-url=http://localhost:8888/api
 
-# または Makefile を使用
+# Or using Makefile
 make run API_URL=http://localhost:8888/api
 ```
 
-### ビルド
+### Build
 
 ```bash
-# 実行可能ファイルにコンパイル
+# Compile to executable
 make build
 
-# 実行
+# Run
 make start API_URL=http://localhost:8888/api
 ```
 
-## Claude Desktopとの連携
+## Integration with Claude Desktop
 
-Claude Desktopの設定ファイル（`claude_desktop_config.json`）を編集し、以下のように追加します：
+Edit Claude Desktop's configuration file (`claude_desktop_config.json`) and add the following:
 
 ```json
 {
@@ -71,73 +71,73 @@ Claude Desktopの設定ファイル（`claude_desktop_config.json`）を編集�
 }
 ```
 
-設定ファイルの場所：
+Configuration file location:
 - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 
-## テスト
+## Testing
 
-MCPサーバーのテストには以下のコマンドを使用できます：
+You can use the following commands to test the MCP server:
 
 ```bash
-# 単体テストを実行
+# Run unit tests
 make test
 
-# ツールテストを実行（モックAPIサーバーを使用）
+# Run tool tests (using mock API server)
 make test-tools
 
-# 対話的な手動テストを実行
+# Run interactive manual testing
 make manual-test
 ```
 
-### 手動テスト
+### Manual Testing
 
-`make manual-test` コマンドは対話的なテストインターフェースを提供します。
-このツールを使用して、MCPサーバーのツールとリソースを手動でテストできます。
+The `make manual-test` command provides an interactive testing interface.
+You can use this tool to manually test the MCP server's tools and resources.
 
-主な機能：
+Main features:
 
-1. メモ一覧の取得
-2. 新規メモの作成
-3. メモの削除
-4. リソースの読み取り
-5. ツール・リソース一覧の取得
+1. Get memo list
+2. Create a new memo
+3. Delete a memo
+4. Read resources
+5. Get tool and resource listings
 
-テスト結果は自動的にログファイルに保存されます。
+Test results are automatically saved to a log file.
 
-### ツールテスト
+### Tool Testing
 
-`make test-tools` コマンドは、自動化されたテストを実行します。
-このテストでは、モックAPIサーバーを使用して、MCPサーバーのツールとリソースが正しく機能することを検証します。
+The `make test-tools` command runs automated tests.
+These tests use a mock API server to verify that the MCP server's tools and resources function correctly.
 
-## コマンドラインオプション
+## Command Line Options
 
 ```
-使用方法: memo_mcp [options]
+Usage: memo_mcp [options]
 
-オプション:
-  -a, --api-url=<URL>          MemoAppのAPIエンドポイントURL
-                               (デフォルト: http://localhost:8888/api)
-  -l, --log-level=<レベル>      ログレベル
-                               (デフォルト: info)
-  -p, --ping-interval=<秒>      APIサーバーへのping間隔
-                               (デフォルト: 30)
-  -h, --help                   ヘルプを表示
+Options:
+  -a, --api-url=<URL>          MemoApp API endpoint URL
+                               (default: http://localhost:8888/api)
+  -l, --log-level=<level>      Log level
+                               (default: info)
+  -p, --ping-interval=<sec>    Ping interval to API server
+                               (default: 30)
+  -h, --help                   Display help
 ```
 
-## トラブルシューティング
+## Troubleshooting
 
-### APIサーバーに接続できない
+### Cannot connect to API server
 
-MemoAppが起動しており、APIエンドポイントが正しく設定されていることを確認してください。
-デフォルトでは `http://localhost:8888/api` に接続を試みます。
+Make sure MemoApp is running and the API endpoint is correctly configured.
+By default, it attempts to connect to `http://localhost:8888/api`.
 
-### Claude Desktopで認識されない
+### Not recognized by Claude Desktop
 
-Claude Desktopの設定ファイルが正しく設定されていることを確認してください。
-特に、絶対パスが正しく指定されていることを確認します。
+Ensure that the Claude Desktop configuration file is correctly set up.
+In particular, verify that the absolute path is specified correctly.
 
-### ツールの呼び出しでエラーが発生する
+### Errors occur when calling tools
 
-手動テストツール (`make manual-test`) を使用して、ツールの動作を確認してください。
-詳細なエラーメッセージとログが生成されます。
+Use the manual test tool (`make manual-test`) to verify tool operation.
+Detailed error messages and logs will be generated.
