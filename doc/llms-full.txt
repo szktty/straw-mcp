@@ -1,0 +1,1556 @@
+# StrawMCP: Basic Concepts and Introduction
+
+## Overview
+
+StrawMcp is a Dart language implementation of the Model Context Protocol (MCP). This SDK enables easy integration between Dart/Flutter applications and MCP servers. It also allows Dart applications themselves to function as MCP servers.
+
+### What is the MCP Protocol?
+
+Model Context Protocol (MCP) is a protocol that standardizes communication between LLMs (Large Language Models) and tools or data sources. This provides:
+
+- A consistent way to share LLM context across applications
+- The ability for users to utilize various tools during conversations with LLMs
+- A standard interface for developers to provide functionality to LLM applications
+
+StrawMCP implements this protocol in Dart, allowing Dart applications to utilize the protocol.
+
+## Installation
+
+Install the package with the following command:
+
+```
+dart pub add straw_mcp
+```
+
+Or add the following to your `pubspec.yaml`:
+
+```yaml
+dependencies:
+  straw_mcp: ^0.5.0  # Specify the latest version
+```
+
+## Main Components
+
+StrawMCP consists of the following main components:
+
+1. **Client Functions**: Send requests to MCP servers
+   - Client interface (`Client`)
+   - Standard input/output client (`StreamClient`)
+   - HTTP+SSE client (`SseClient`)
+
+2. **Server Functions**: Operate as an MCP server
+   - Server implementation (`ProtocolHandler`)
+   - Standard input/output server (`StreamServer`, `serveStdio`)
+   - HTTP+SSE server (`SseServer`)
+
+3. **Data Models**: Definitions of types used in the protocol
+   - JSON-RPC messages
+   - Resource-related types
+   - Tool-related types
+   - Prompt-related types
+   - Content types
+
+4. **Communication Layer**: Communication via standard input/output (stdio) or HTTP+SSE
+   - Efficient buffering (`ReadBuffer`)
+   - Message serialization/deserialization
+   - Transport implementation
+
+## Protocol Version
+
+StrawMCP currently supports the `2024-11-05` version of the protocol:
+
+```dart
+// Reference to the latest protocol version
+const String latestProtocolVersion = '2024-11-05';
+```
+
+When initializing the connection between client and server, the supported protocol version is specified and compatibility is verified.
+
+## Basic Functions
+
+### Server Functions
+
+MCP servers can provide the following functions:
+
+1. **Resources**: Provide "readable things" like files and data to clients
+2. **Tools**: Functions or commands that clients can call
+3. **Prompts**: Templated prompts to send to LLMs
+4. **Logging**: Log messages from server to client
+
+### Client Functions
+
+MCP clients can use the following functions:
+
+1. **Reading Resources**: Get a list of resources provided by the server and read their contents
+2. **Executing Tools**: Call tools provided by the server
+3. **Getting Prompts**: Get and use prompts provided by the server
+4. **Processing Notifications**: Process various notifications from the server (resource updates, tool list changes, etc.)
+
+## Communication Methods
+
+StrawMCP supports the following communication methods:
+
+1. **Standard Input/Output (stdio)**: Suitable for communication within a single process or between parent and child processes
+2. **HTTP + Server-Sent Events (SSE)**: Used for communication across networks
+
+## JSON-RPC Foundation
+
+MCP is based on JSON-RPC 2.0. Main message types:
+
+1. **Requests**: Requests from client to server
+2. **Responses**: Responses from server to client
+3. **Notifications**: One-way messages that do not expect a response
+4. **Errors**: Error information when a problem occurs
+
+## Next Steps
+
+To start using the StrawMCP, refer to the following sections:
+
+- Server Implementation Guide: How to create an MCP server
+- Client Implementation Guide: How to use an MCP client
+- Data Models and API Details: Details of types and APIs used in the SDK
+
+# StrawMCP: Client Implementation Guide
+
+## Client Basics
+
+In the StrawMCP, you connect to MCP servers using client classes that implement the `Client` interface. The main client implementations include:
+
+- `StreamClient`: Client using standard input/output (stdio) or custom streams
+- `SseClient`: Client using HTTP+SSE (Server-Sent Events)
+
+### Creating and Connecting a Client
+
+```dart
+import 'package:straw_mcp/straw_mcp.dart';
+
+// Create a standard input/output client
+final client = StreamClient(
+  options: StreamClientOptions.stdio(
+    logger: Logger('StreamClient'),
+    // Optionally specify custom input/output streams
+    // inputStream: customInputStream,
+    // outputSink: customOutputSink,
+  ),
+);
+
+// Connect
+await client.connect();
+
+// Initialize
+final initResult = await client.initialize(
+  InitializeRequest(
+    protocolVersion: latestProtocolVersion,
+    capabilities: ClientCapabilities(),
+    clientInfo: Implementation(
+      name: 'My MCP Client',
+      version: '1.0.0',
+    ),
+  ),
+);
+
+// Display server information
+print('Connected to server: ${initResult.serverInfo.name} ${initResult.serverInfo.version}');
+print('Protocol version: ${initResult.protocolVersion}');
+print('Capabilities: ${initResult.capabilities}');
+if (initResult.instructions != null) {
+  print('Instructions: ${initResult.instructions}');
+}
+```
+
+### Creating and Connecting an HTTP+SSE Client
+
+```dart
+import 'package:straw_mcp/straw_mcp.dart';
+
+// Create an HTTP+SSE client
+final client = SseClient(
+  'http://localhost:8080',  // Server base URL
+  options: SseClientOptions(
+    logger: Logger('SseClient'),
+    // Other option settings
+  ),
+);
+
+// Connect and initialize (same as StreamClient)
+await client.connect();
+final initResult = await client.initialize(/* ... */);
+```
+
+## Setting Client Capabilities
+
+Clients notify servers of the functions they support:
+
+```dart
+final capabilities = ClientCapabilities(
+  // Support for root functionality (with list change notification support)
+  roots: RootsCapabilities(listChanged: true),
+  
+  // Support for sampling functionality
+  sampling: SamplingCapabilities(),
+  
+  // Experimental extensions
+  experimental: {
+    'customFeature': {},
+  },
+);
+
+// Specify capabilities in the initialization request
+final initResult = await client.initialize(
+  InitializeRequest(
+    protocolVersion: latestProtocolVersion,
+    capabilities: capabilities,
+    clientInfo: Implementation(name: 'MyClient', version: '1.0.0'),
+  ),
+);
+```
+
+## Using Tools
+
+### Getting a List of Tools
+
+```dart
+// Get a list of available tools
+final toolsResult = await client.listTools(ListToolsRequest());
+
+for (final tool in toolsResult.tools) {
+  print('Tool: ${tool.name}');
+  print('  Description: ${tool.description}');
+  
+  // Tool parameter information
+  for (final param in tool.parameters) {
+    print('  Parameter: ${param.name} (${param.type})');
+    print('    Required: ${param.required}');
+    print('    Description: ${param.description}');
+  }
+}
+```
+
+### Calling Tools
+
+```dart
+// Call a calculation tool
+final callResult = await client.callTool(
+  CallToolRequest(
+    name: 'calculator',
+    arguments: {
+      'a': 5,
+      'b': 3,
+      'operation': 'add',
+    },
+  ),
+);
+
+// Process the result
+if (callResult.isError == true) {
+  print('Tool execution failed:');
+} else {
+  print('Tool execution succeeded:');
+}
+
+// Process result contents
+for (final content in callResult.content) {
+  if (content is TextContent) {
+    print('Text: ${content.text}');
+  } else if (content is ImageContent) {
+    print('Image: ${content.mimeType}, size: ${content.data.length} bytes');
+  } else if (content is EmbeddedResource) {
+    print('Resource: ${content.resource.uri}');
+    if (content.resource is TextResourceContents) {
+      print('Resource text: ${(content.resource as TextResourceContents).text}');
+    }
+  }
+}
+```
+
+## Using Resources
+
+### Getting a List of Resources
+
+```dart
+// Get a list of resources available on the server
+final resourcesResult = await client.listResources(ListResourcesRequest());
+
+for (final resource in resourcesResult.resources) {
+  print('Resource: ${resource.uri}');
+  print('  Name: ${resource.name}');
+  print('  Description: ${resource.description}');
+  print('  MIME Type: ${resource.mimeType}');
+}
+
+// Get resource templates
+final templatesResult = await client.listResourceTemplates(
+  ListResourceTemplatesRequest(),
+);
+
+for (final template in templatesResult.resourceTemplates) {
+  print('Template: ${template.uriTemplate}');
+  print('  Name: ${template.name}');
+  print('  Description: ${template.description}');
+  print('  MIME Type: ${template.mimeType}');
+}
+```
+
+### Reading Resources
+
+```dart
+// Reading a static resource
+final readResult = await client.readResource(
+  ReadResourceRequest(uri: 'example://greeting'),
+);
+
+// Reading a dynamic resource
+final userProfileResult = await client.readResource(
+  ReadResourceRequest(uri: 'user://12345/profile'),
+);
+
+// Processing resource contents
+for (final content in readResult.contents) {
+  if (content is TextResourceContents) {
+    print('Text resource: ${content.uri}');
+    print('Content: ${content.text}');
+    print('MIME type: ${content.mimeType}');
+  } else if (content is BlobResourceContents) {
+    print('Binary resource: ${content.uri}');
+    print('Size: ${content.blob.length} bytes');
+    print('MIME type: ${content.mimeType}');
+  }
+}
+```
+
+### Resource Subscription
+
+Subscription feature to receive notifications of resource changes:
+
+```dart
+// Subscribe to a resource
+await client.subscribe(SubscribeRequest(uri: 'example://data'));
+
+// Unsubscribe
+await client.unsubscribe(UnsubscribeRequest(uri: 'example://data'));
+```
+
+Processing resource update notifications is done in the notification handler (described later).
+
+## Using Prompts
+
+### Getting a List of Prompts
+
+```dart
+// Get a list of prompts available on the server
+final promptsResult = await client.listPrompts(ListPromptsRequest());
+
+for (final prompt in promptsResult.prompts) {
+  print('Prompt: ${prompt.name}');
+  print('  Description: ${prompt.description}');
+  
+  // Prompt arguments
+  for (final arg in prompt.arguments ?? []) {
+    print('  Argument: ${arg.name}');
+    print('    Required: ${arg.required}');
+    print('    Description: ${arg.description}');
+  }
+}
+```
+
+### Getting a Prompt
+
+```dart
+// Get a code review prompt
+final promptResult = await client.getPrompt(
+  GetPromptRequest(
+    name: 'code-review',
+    arguments: {
+      'code': 'function add(a, b) { return a + b; }',
+      'language': 'JavaScript',
+    },
+  ),
+);
+
+// Process prompt messages
+for (final message in promptResult.messages) {
+  print('Message role: ${message.role}');
+  
+  if (message.content is TextContent) {
+    print('Content: ${(message.content as TextContent).text}');
+  } else if (message.content is ImageContent) {
+    print('Image content: ${(message.content as ImageContent).mimeType}');
+  } else if (message.content is EmbeddedResource) {
+    print('Resource content: ${(message.content as EmbeddedResource).resource.uri}');
+  }
+}
+```
+
+## Processing Notifications
+
+To process notifications from the server (tool list changes, resource updates, etc.):
+
+```dart
+// Register a notification handler
+client.onNotification((notification) {
+  final method = notification.notification.method;
+  final params = notification.notification.params;
+  
+  switch (method) {
+    case 'notifications/resources/updated':
+      final uri = params.additionalFields['uri'] as String;
+      print('Resource updated: $uri');
+      // Process such as reloading the resource
+      break;
+      
+    case 'notifications/tools/list_changed':
+      print('Tool list changed');
+      // Process to retrieve the tool list again
+      break;
+      
+    case 'notifications/prompts/list_changed':
+      print('Prompt list changed');
+      // Process to retrieve the prompt list again
+      break;
+      
+    case 'notifications/progress':
+      final progressToken = params.additionalFields['progressToken'];
+      final progress = params.additionalFields['progress'] as num;
+      final total = params.additionalFields['total'] as num?;
+      
+      if (total != null) {
+        print('Progress: ${(progress / total * 100).toStringAsFixed(1)}% (${progress}/${total})');
+      } else {
+        print('Progress: $progress');
+      }
+      break;
+      
+    case 'notifications/message':
+      final level = params.additionalFields['level'] as String;
+      final data = params.additionalFields['data'];
+      print('[$level] $data');
+      break;
+      
+    default:
+      print('Unknown notification: $method');
+      break;
+  }
+});
+```
+
+## Setting the Logging Level
+
+Clients can set the log level sent to the server:
+
+```dart
+// Set the server's log level
+await client.setLevel(SetLevelRequest(LoggingLevel.debug));
+// Or LoggingLevel.info, LoggingLevel.warning, LoggingLevel.error, etc.
+```
+
+## Auto-completion
+
+StrawMCP supports auto-completion requests from client to server:
+
+```dart
+// Get completion candidates for prompt arguments
+final completeResult = await client.complete(
+  CompleteRequest(
+    ref: PromptReference('code-review'),
+    argumentName: 'language',
+    argumentValue: 'py',  // Beginning part of completion candidates
+  ),
+);
+
+// Get completion candidates for resource URIs
+final uriCompleteResult = await client.complete(
+  CompleteRequest(
+    ref: ResourceReference('user://'),
+    argumentName: 'userId',
+    argumentValue: '123',
+  ),
+);
+
+// Process completion candidates
+for (final value in completeResult.completion.values) {
+  print('Completion option: $value');
+}
+
+print('Total options: ${completeResult.completion.total ?? completeResult.completion.values.length}');
+print('Has more options: ${completeResult.completion.hasMore}');
+```
+
+## Closing the Client
+
+Properly closing the client prevents resource leaks:
+
+```dart
+// Close the client connection
+await client.close();
+```
+
+This operation does the following:
+- Cancels pending requests
+- Closes notification streams
+- Terminates the connection
+
+## Error Handling
+
+Proper error handling is important in MCP client operations:
+
+```dart
+try {
+  final result = await client.callTool(
+    CallToolRequest(name: 'calculator', arguments: {...}),
+  );
+  // Process the result
+} on McpError catch (e) {
+  // MCP-specific errors
+  print('MCP error: (${e.code}) ${e.message}');
+  
+  // Processing based on error code
+  switch (e.code) {
+    case methodNotFound:
+      print('Tool not found');
+      break;
+    case invalidParams:
+      print('Invalid parameters');
+      break;
+    case internalError:
+      print('Server internal error');
+      break;
+    default:
+      print('Unknown error');
+      break;
+  }
+} catch (e) {
+  // Other errors
+  print('Unexpected error: $e');
+}
+```
+
+## Complete Client Example
+
+Here is an example of a basic MCP client implementation:
+
+```dart
+import 'dart:io';
+import 'package:logging/logging.dart';
+import 'package:straw_mcp/straw_mcp.dart';
+
+Future<void> main() async {
+  // Set up logging
+  Logger.root.level = Level.INFO;
+  Logger.root.onRecord.listen((record) {
+    stderr.writeln('${record.level.name}: ${record.time}: ${record.message}');
+  });
+
+  final logger = Logger('MCPClient');
+  
+  // Create client
+  final client = StreamClient(
+    options: StreamClientOptions(logger: Logger('StreamClient')),
+  );
+  
+  try {
+    // Connect
+    logger.info('Connecting to MCP server...');
+    await client.connect();
+    
+    // Initialize
+    final initResult = await client.initialize(
+      InitializeRequest(
+        protocolVersion: latestProtocolVersion,
+        capabilities: ClientCapabilities(),
+        clientInfo: Implementation(name: 'MyClient', version: '1.0.0'),
+      ),
+    );
+    
+    logger.info('Connected to ${initResult.serverInfo.name} ${initResult.serverInfo.version}');
+    
+    // Set up notification handler
+    client.onNotification((notification) {
+      final method = notification.notification.method;
+      logger.info('Notification received: $method');
+      
+      // Notification processing...
+    });
+    
+    // Get tool list
+    final toolsResult = await client.listTools(ListToolsRequest());
+    logger.info('Available tools: ${toolsResult.tools.map((t) => t.name).join(', ')}');
+    
+    // Call a tool
+    if (toolsResult.tools.any((t) => t.name == 'echo')) {
+      final echoResult = await client.callTool(
+        CallToolRequest(
+          name: 'echo',
+          arguments: {'message': 'Hello from MCP client!'},
+        ),
+      );
+      
+      if (echoResult.content.isNotEmpty && echoResult.content.first is TextContent) {
+        logger.info('Echo result: ${(echoResult.content.first as TextContent).text}');
+      }
+    }
+    
+    // Get resource list
+    final resourcesResult = await client.listResources(ListResourcesRequest());
+    logger.info('Available resources: ${resourcesResult.resources.map((r) => r.uri).join(', ')}');
+    
+    // Read a resource
+    if (resourcesResult.resources.isNotEmpty) {
+      final readResult = await client.readResource(
+        ReadResourceRequest(uri: resourcesResult.resources.first.uri),
+      );
+      
+      for (final content in readResult.contents) {
+        if (content is TextResourceContents) {
+          logger.info('Resource content: ${content.text.substring(0, min(content.text.length, 100))}');
+        }
+      }
+    }
+    
+    // Get prompt list
+    final promptsResult = await client.listPrompts(ListPromptsRequest());
+    logger.info('Available prompts: ${promptsResult.prompts.map((p) => p.name).join(', ')}');
+    
+    // Close client
+    await client.close();
+    logger.info('Client closed');
+  } catch (e) {
+    logger.severe('Error: $e');
+  }
+}
+
+int min(int a, int b) => a < b ? a : b;
+```
+# StrawMCP: Server Implementation Guide
+
+## Server Basics
+
+In the StrawMCP, you use the `ProtocolHandler` class to implement an MCP server. This class provides server-side functionality for the MCP protocol and processes requests from clients.
+
+### Creating a Server
+
+```dart
+import 'package:straw_mcp/straw_mcp.dart';
+
+// Create an MCP server
+final server = ProtocolHandler(
+  'MyServer',  // Server name
+  '1.0.0',     // Server version
+  [
+    // Specify server capabilities
+    withToolCapabilities(listChanged: true),
+    withResourceCapabilities(subscribe: false, listChanged: true),
+    withPromptCapabilities(listChanged: true),
+    withLogging(),
+    withInstructions('Instructions on how to use this server'),
+  ],
+  Logger('MyServer'),  // Optional logger
+);
+```
+
+### Setting Server Capabilities
+
+Servers can support the following capabilities:
+
+```dart
+// Add tool functionality (with support for tool list change notifications)
+withToolCapabilities(listChanged: true)
+
+// Add resource functionality (without subscription support, with support for resource list change notifications)
+withResourceCapabilities(subscribe: false, listChanged: true)
+
+// Add prompt functionality (with support for prompt list change notifications)
+withPromptCapabilities(listChanged: true)
+
+// Add logging functionality
+withLogging()
+
+// Set instructions for using the server
+withInstructions('Server usage instructions...')
+```
+
+## Implementing Tools
+
+Tools are functions or commands provided by the server. Clients and LLMs can call these to perform specific tasks.
+
+### Adding Tools
+
+```dart
+// Add a basic tool
+server.addTool(
+  // Tool definition
+  newTool('calculator', [
+    withDescription('Simple calculation function'),
+    withNumber('a', [required(), description('First operand')]),
+    withNumber('b', [required(), description('Second operand')]),
+    withString('operation', [
+      required(), 
+      description('Operation to perform'),
+      enumValues(['add', 'subtract', 'multiply', 'divide']),
+    ]),
+  ]),
+  // Tool handler function
+  (request) async {
+    // Get parameters from the request
+    final args = request.params['arguments'] as Map<String, dynamic>;
+    final a = args['a'] as num;
+    final b = args['b'] as num;
+    final operation = args['operation'] as String;
+    
+    double result;
+    switch (operation) {
+      case 'add':
+        result = a + b;
+        break;
+      case 'subtract':
+        result = a - b;
+        break;
+      case 'multiply':
+        result = a * b;
+        break;
+      case 'divide':
+        if (b == 0) {
+          return newToolResultError('Cannot divide by 0');
+        }
+        result = a / b;
+        break;
+      default:
+        return newToolResultError('Unknown operation: $operation');
+    }
+    
+    return newToolResultText('Result: $result');
+  },
+);
+```
+
+### Tool Options and Parameters
+
+Tools can have the following options:
+
+```dart
+// Tool description
+withDescription('Tool description')
+
+// Add a string parameter
+withString('parameterName', [
+  required(),  // Set as a required parameter
+  description('Parameter description'),
+  enumValues(['value1', 'value2', 'value3']),  // Limit selectable values
+])
+
+// Add a number parameter
+withNumber('parameterName', [
+  description('Parameter description'),
+  defaultValue(42),  // Set a default value
+])
+
+// Add a boolean parameter
+withBoolean('parameterName', [
+  description('Parameter description'),
+])
+```
+
+### Returning Tool Execution Results
+
+Tool execution results can be returned as follows:
+
+```dart
+// Text format success result
+return newToolResultText('Success message');
+
+// Error result
+return newToolResultError('Error message');
+
+// Result with multiple contents
+return CallToolResult(
+  content: [
+    TextContent(text: 'Text part'),
+    ImageContent(data: 'base64 encoded image data', mimeType: 'image/png'),
+  ],
+  isError: false,  // Whether it's an error (default is false)
+);
+```
+
+## Implementing Resources
+
+Resources are "readable things" provided by the server, such as files and data.
+
+### Adding Resources
+
+```dart
+// Add a resource with a direct URI
+server.addResource(
+  // Resource definition
+  Resource(
+    uri: 'example://greeting',
+    name: 'Greeting',
+    description: 'Simple greeting message',
+    mimeType: 'text/plain',
+  ),
+  // Resource handler function
+  (request) async {
+    return [
+      TextResourceContents(
+        uri: 'example://greeting',
+        text: 'Hello, world!',
+        mimeType: 'text/plain',
+      ),
+    ];
+  },
+);
+
+// Add a resource template (dynamic resource)
+server.addResourceTemplate(
+  // Template definition
+  ResourceTemplate(
+    uriTemplate: 'user://{userId}/profile',
+    name: 'User Profile',
+    description: 'Profile information for the specified user ID',
+    mimeType: 'application/json',
+  ),
+  // Template handler function
+  (request) async {
+    final uri = request.params['uri'] as String;
+    
+    // Extract userId from URI
+    final match = RegExp(r'user://([^/]+)/profile').firstMatch(uri);
+    if (match == null) {
+      return [
+        TextResourceContents(
+          uri: uri,
+          text: '{"error": "Invalid URI format"}',
+          mimeType: 'application/json',
+        ),
+      ];
+    }
+    
+    final userId = match.group(1)!;
+    
+    // Get user information (in an actual application, this would be retrieved from a database, etc.)
+    final userData = '{"id": "$userId", "name": "User$userId", "email": "user$userId@example.com"}';
+    
+    return [
+      TextResourceContents(
+        uri: uri,
+        text: userData,
+        mimeType: 'application/json',
+      ),
+    ];
+  },
+);
+```
+
+### Creating Resource Contents
+
+Resource contents can be created as follows:
+
+```dart
+// Text resource
+TextResourceContents(
+  uri: 'resource://uri',
+  text: 'Text content',
+  mimeType: 'text/plain',  // Optional
+)
+
+// Binary resource (Base64 encoded)
+BlobResourceContents(
+  uri: 'resource://uri',
+  blob: 'base64 encoded data',
+  mimeType: 'application/octet-stream',  // Optional
+)
+```
+
+## Implementing Prompts
+
+Prompts are templated message sets for sending to LLMs (Large Language Models).
+
+### Adding Prompts
+
+```dart
+server.addPrompt(
+  // Prompt definition
+  Prompt(
+    name: 'code-review',
+    description: 'Code review prompt',
+    arguments: [
+      PromptArgument(
+        name: 'code',
+        description: 'Code to review',
+        required: true,
+      ),
+      PromptArgument(
+        name: 'language',
+        description: 'Programming language',
+        required: false,
+      ),
+    ],
+  ),
+  // Prompt handler function
+  (request) async {
+    final args = request.params['arguments'] as Map<String, dynamic>? ?? {};
+    final code = args['code'] as String? ?? '';
+    final language = args['language'] as String? ?? 'Unknown';
+    
+    return GetPromptResult(
+      messages: [
+        PromptMessage(
+          role: Role.user,
+          content: TextContent(
+            text: '''
+Please review the following $language code:
+
+$code
+
+Please evaluate the following aspects:
+1. Code clarity and readability
+2. Performance concerns
+3. Appropriateness of error handling
+4. Specific suggestions for improvement
+''',
+          ),
+        ),
+      ],
+    );
+  },
+);
+```
+
+## Starting the Server
+
+### Starting with Standard Input/Output (stdio)
+
+```dart
+import 'dart:io';
+import 'package:logging/logging.dart';
+import 'package:straw_mcp/straw_mcp.dart';
+
+void main() async {
+  // Set up logging
+  Logger.root.level = Level.INFO;
+  Logger.root.onRecord.listen((record) {
+    stderr.writeln('${record.level.name}: ${record.time}: ${record.message}');
+  });
+
+  final logger = Logger('MyServer');
+  
+  // Create MCP server
+  final server = ProtocolHandler('MyServer', '1.0.0', [
+    withToolCapabilities(listChanged: true),
+    withResourceCapabilities(subscribe: false, listChanged: true),
+    withPromptCapabilities(listChanged: true),
+    withLogging(),
+  ], logger);
+  
+  // Add tools, resources, prompts
+  // ...
+  
+  // Start the server
+  logger.info('Starting MCP server...');
+  await serveStdio(
+    server,
+    options: StreamServerOptions.stdio(logger: Logger('StreamServer')),
+    logFilePath: '/path/to/server.log',  // Optional
+  );
+}
+```
+
+### Starting with HTTP+SSE (Server-Sent Events)
+
+```dart
+import 'dart:io';
+import 'package:logging/logging.dart';
+import 'package:straw_mcp/straw_mcp.dart';
+
+void main() async {
+  // Set up logging and MCP server
+  // ...
+  
+  // Start the SSE server
+  final port = 8080;
+  final host = 'localhost';
+  
+  logger.info('Starting MCP SSE server on $host:$port...');
+  final sseServer = serveSse(
+    server,
+    options: SseServerOptions(host: host, port: port, logger: Logger('SseServer')),
+  );
+  
+  await sseServer.start();
+  
+  logger.info('Server started at http://$host:$port');
+  logger.info('Press Ctrl+C to stop the server');
+}
+```
+
+## Error Handling
+
+Proper error handling is important in server implementation:
+
+```dart
+try {
+  // Some operation
+  // ...
+} catch (e) {
+  // Log the error
+  logger.severe('An error occurred during operation: $e');
+  
+  // For tools, return an error result
+  return newToolResultError('An error occurred: $e');
+  
+  // For resources, return a resource containing an error message
+  return [
+    TextResourceContents(
+      uri: request.params['uri'] as String,
+      text: 'An error occurred: $e',
+      mimeType: 'text/plain',
+    ),
+  ];
+}
+```
+
+## Logging
+
+Log notifications from server to client:
+
+```dart
+// Send notifications according to log level
+server.loggingNotification(LoggingMessageNotification(
+  level: LoggingLevel.info,
+  data: 'Server started successfully',
+));
+
+server.loggingNotification(LoggingMessageNotification(
+  level: LoggingLevel.warning,
+  data: 'Warning: Server resources are running low',
+));
+
+server.loggingNotification(LoggingMessageNotification(
+  level: LoggingLevel.error,
+  data: 'Error: Failed to connect to database',
+));
+```
+
+## Managing Multiple Tools at Once
+
+Adding, replacing, and removing tools:
+
+```dart
+// Add multiple tools at once
+server.addTools([
+  ServerTool(tool1, handler1),
+  ServerTool(tool2, handler2),
+]);
+
+// Replace all tools with a new set
+server.setTools([
+  ServerTool(newTool1, newHandler1),
+  ServerTool(newTool2, newHandler2),
+]);
+
+// Remove specific tools
+server.deleteTools(['tool1', 'tool2']);
+```
+
+## Properly Shutting Down the Server
+
+It's important to properly shut down the server to clean up resources:
+
+```dart
+// Shut down the server
+await server.close();
+```
+
+When using `serveStdio` or `serveSse`, signals like Ctrl+C (SIGINT) or SIGTERM are automatically handled.
+# StrawMCP: Data Models and API Overview
+
+This section provides an overview of the main data models and APIs used in the StrawMCP. It focuses on how to use them rather than implementation details.
+
+## JSON-RPC Basic Types
+
+MCP is based on JSON-RPC 2.0, and the following basic types are defined:
+
+### JsonRpcMessage
+
+The base class for all JSON-RPC messages.
+
+```dart
+abstract class JsonRpcMessage {}
+```
+
+Main concrete classes:
+
+- `JsonRpcRequest` - Request message (expects a response)
+- `JsonRpcNotification` - Notification message (no response required)
+- `JsonRpcResponse` - Success response
+- `JsonRpcError` - Error response
+
+## MCP Common Types
+
+### Request / Result / Notification
+
+Basic message types for the MCP protocol.
+
+```dart
+// Request
+class Request {
+  final String method;                // Request method
+  final Map<String, dynamic> params;  // Request parameters
+}
+
+// Response result
+class Result {
+  Map<String, dynamic>? meta;         // Optional metadata
+  
+  Map<String, dynamic> toJson();      // Conversion to JSON
+}
+
+// Notification
+class Notification {
+  final String method;                // Notification method
+  final NotificationParams params;    // Notification parameters
+}
+```
+
+### Implementation
+
+Represents implementation information for a client or server.
+
+```dart
+class Implementation {
+  final String name;                  // Implementation name
+  final String version;               // Implementation version
+}
+```
+
+### Annotated
+
+Base class for objects with annotation features.
+
+```dart
+class Annotated {
+  final List<Role>? audience;         // Target users
+  final double? priority;             // Priority (0-1)
+}
+```
+
+### Capability Types
+
+Describe features supported by clients and servers.
+
+```dart
+// Client capabilities
+class ClientCapabilities {
+  Map<String, dynamic>? experimental;  // Experimental features
+  RootsCapabilities? roots;            // Root functionality
+  SamplingCapabilities? sampling;      // Sampling functionality
+}
+
+// Server capabilities
+class ServerCapabilities {
+  Map<String, dynamic>? experimental;  // Experimental features
+  bool logging;                        // Logging functionality
+  PromptCapabilities? prompts;         // Prompt functionality
+  ResourceCapabilities? resources;     // Resource functionality
+  ToolCapabilities? tools;             // Tool functionality
+}
+```
+
+## Initialization-Related Types
+
+Used for establishing and initializing connections.
+
+```dart
+// Initialization request
+class InitializeRequest extends Request {
+  // Includes protocol version, capabilities, client information
+}
+
+// Initialization result
+class InitializeResult extends Result {
+  final String protocolVersion;         // Protocol version
+  final ServerCapabilities capabilities; // Server capabilities
+  final Implementation serverInfo;      // Server information
+  final String? instructions;           // Usage instructions
+}
+
+// Initialization complete notification
+class InitializedNotification extends Notification {
+  // Initialization complete notification from client to server
+}
+```
+
+## Tool-Related Types
+
+### Tool
+
+Represents a tool provided by the server.
+
+```dart
+class Tool extends Annotated {
+  String name;                       // Tool name
+  String? description;               // Tool description
+  List<ToolParameter> parameters;    // Tool parameters
+}
+
+class ToolParameter extends Annotated {
+  String name;                       // Parameter name
+  String type;                       // Parameter type (string, number, boolean, etc.)
+  bool? required;                    // Whether it's required
+  String? description;               // Parameter description
+  List<String>? enumValues;          // Enumeration values
+  dynamic defaultValue;              // Default value
+}
+```
+
+### Tool-Related Requests/Responses
+
+```dart
+// Tool list retrieval
+class ListToolsRequest extends Request { /* ... */ }
+class ListToolsResult extends Result {
+  final List<Tool> tools;                // List of available tools
+}
+
+// Tool call
+class CallToolRequest extends Request {
+  // name: Tool name
+  // arguments: Tool parameters
+}
+class CallToolResult extends Result {
+  final List<Content> content;           // Tool execution result
+  final bool isError;                    // Whether it's an error
+}
+
+// Tool list change notification
+class ToolListChangedNotification extends Notification { /* ... */ }
+```
+
+## Resource-Related Types
+
+### Resource / ResourceTemplate
+
+Represents resources provided by the server.
+
+```dart
+class Resource extends Annotated {
+  final String uri;                    // Resource URI
+  final String name;                   // Resource name
+  final String? description;           // Resource description
+  final String? mimeType;              // MIME type
+  final int? size;                     // Size (in bytes)
+}
+
+class ResourceTemplate extends Annotated {
+  final String uriTemplate;            // URI template
+  final String name;                   // Template name
+  final String? description;           // Template description
+  final String? mimeType;              // MIME type
+}
+```
+
+### ResourceContents
+
+Represents the contents of a resource.
+
+```dart
+// Abstract interface for resource contents
+abstract class ResourceContents {
+  String get uri;
+  String? get mimeType;
+}
+
+// Text resource
+class TextResourceContents implements ResourceContents {
+  final String uri;
+  final String? mimeType;
+  final String text;                    // Text content
+}
+
+// Binary resource
+class BlobResourceContents implements ResourceContents {
+  final String uri;
+  final String? mimeType;
+  final String blob;                    // Base64-encoded binary data
+}
+```
+
+## Resource-Related Requests/Responses
+
+```dart
+// Resource list retrieval
+class ListResourcesRequest extends Request { /* ... */ }
+class ListResourcesResult extends Result {
+  final List<Resource> resources;       // List of available resources
+}
+
+// Resource template list retrieval
+class ListResourceTemplatesRequest extends Request { /* ... */ }
+class ListResourceTemplatesResult extends Result {
+  final List<ResourceTemplate> resourceTemplates;  // List of available templates
+}
+
+// Resource reading
+class ReadResourceRequest extends Request {
+  // uri: URI of the resource to read
+}
+class ReadResourceResult extends Result {
+  final List<ResourceContents> contents;  // Resource contents
+}
+```
+
+### Resource Subscription and Notification
+
+```dart
+// Resource subscription
+class SubscribeRequest extends Request {
+  // uri: URI of the resource to subscribe to
+}
+
+// Resource unsubscription
+class UnsubscribeRequest extends Request {
+  // uri: URI of the resource to unsubscribe from
+}
+
+// Resource list change notification
+class ResourceListChangedNotification extends Notification { /* ... */ }
+
+// Resource update notification
+class ResourceUpdatedNotification extends Notification {
+  // uri: URI of the updated resource
+}
+```
+
+## Content Types
+
+Content types are data types used for both prompts and tools.
+
+```dart
+// Abstract base class for content
+abstract class Content extends Annotated {
+  String get type;                      // Content type
+}
+
+// Text content
+class TextContent extends Content {
+  final String text;                    // Text content
+}
+
+// Image content
+class ImageContent extends Content {
+  final String data;                    // Base64-encoded image data
+  final String mimeType;                // Image MIME type
+}
+
+// Embedded resource
+class EmbeddedResource extends Content {
+  final ResourceContents resource;      // Embedded resource
+}
+```
+
+## Prompt-Related Types
+
+### Prompt
+
+Represents a prompt provided by the server.
+
+```dart
+class Prompt extends Annotated {
+  String name;                           // Prompt name
+  String? description;                   // Prompt description
+  List<PromptArgument> arguments;        // Prompt arguments
+}
+
+class PromptArgument extends Annotated {
+  String name;                           // Argument name
+  String? description;                   // Argument description
+  bool? required;                        // Whether it's required
+}
+```
+
+### Prompt-Related Requests/Responses
+
+```dart
+// Prompt list retrieval
+class ListPromptsRequest extends Request { /* ... */ }
+class ListPromptsResult extends Result {
+  final List<Prompt> prompts;             // List of available prompts
+}
+
+// Prompt retrieval
+class GetPromptRequest extends Request {
+  // name: Prompt name
+  // arguments: Prompt arguments
+}
+class GetPromptResult extends Result {
+  final String? description;              // Prompt description
+  final List<PromptMessage> messages;     // Prompt messages
+}
+
+// Prompt list change notification
+class PromptListChangedNotification extends Notification { /* ... */ }
+```
+
+### Prompt Message
+
+```dart
+enum Role { user, assistant, system, function, tool }
+
+class PromptMessage extends Annotated {
+  final Role role;                         // Message role
+  final Content content;                   // Message content
+}
+```
+
+## Logging-Related Types
+
+```dart
+// Log level
+enum LoggingLevel {
+  debug,
+  info,
+  notice,
+  warning,
+  error,
+  critical,
+  alert,
+  emergency
+}
+
+// Log level setting request
+class SetLevelRequest extends Request {
+  // level: Log level
+}
+
+// Log message notification
+class LoggingMessageNotification extends Notification {
+  // level: Log level
+  // logger: Logger name (optional)
+  // data: Log data
+}
+```
+
+## Pagination-Related Types
+
+```dart
+// Cursor type (string)
+typedef Cursor = String;
+
+// Paginated request
+class PaginatedRequest extends Request {
+  // cursor: Cursor for the next page (optional)
+}
+
+// Paginated result
+class PaginatedResult extends Result {
+  final String? nextCursor;                // Cursor for the next page (if it exists)
+}
+```
+
+## Root-Related Types
+
+```dart
+// Root list request
+class ListRootsRequest extends Request { /* ... */ }
+
+// Root list result
+class ListRootsResult extends Result {
+  final List<Root> roots;                  // Root list
+}
+
+// Root
+class Root {
+  final String uri;                        // Root URI
+  final String? name;                      // Root name (optional)
+}
+
+// Root list change notification
+class RootsListChangedNotification extends Notification { /* ... */ }
+```
+
+## Auto-completion Related Types
+
+```dart
+// Completion request
+class CompleteRequest extends Request {
+  // ref: Reference (PromptReference or ResourceReference)
+  // argument: Argument to complete
+}
+
+// Completion result
+class CompleteResult extends Result {
+  final CompletionValues completion;        // Completion candidates
+}
+
+// Completion candidate values
+class CompletionValues {
+  final List<String> values;                // Completion candidate values
+  final int? total;                         // Total count (optional)
+  final bool hasMore;                       // Whether there are more candidates
+}
+```
+
+## Reference Types
+
+```dart
+// Resource reference
+class ResourceReference {
+  final String uri;                          // Resource URI
+}
+
+// Prompt reference
+class PromptReference {
+  final String name;                         // Prompt name
+}
+```
+
+## Error Handling
+
+```dart
+// MCP-specific error
+class McpError extends Error {
+  final int code;                            // Error code
+  final String message;                      // Error message
+  final dynamic data;                        // Additional data (optional)
+}
+
+// Standard error codes
+const int parseError = -32700;               // JSON parsing error
+const int invalidRequest = -32600;           // Invalid request
+const int methodNotFound = -32601;           // Method not found
+const int invalidParams = -32602;            // Invalid parameters
+const int internalError = -32603;            // Internal error
+```
+
+## Helper Methods
+
+Helper methods are provided for creating tools, resources, and prompts on the server side.
+
+```dart
+// Tool-related
+Tool newTool(String name, [List<ToolOption> options = const []]);
+ToolOption withDescription(String description);
+ToolOption withString(String name, [List<ToolParameterOption> options = const []]);
+ToolOption withNumber(String name, [List<ToolParameterOption> options = const []]);
+ToolOption withBoolean(String name, [List<ToolParameterOption> options = const []]);
+ToolParameterOption required();
+ToolParameterOption description(String desc);
+ToolParameterOption enumValues(List<String> values);
+ToolParameterOption defaultValue(dynamic value);
+
+// Tool result creation
+CallToolResult newToolResultText(String text);
+CallToolResult newToolResultError(String errorMessage);
+
+// Resource-related
+TextResourceContents newTextContent(String text);
+ImageContent newImageContent(String data, String mimeType);
+EmbeddedResource newEmbeddedResource(ResourceContents resource);
+
+// Prompt-related
+Prompt newPrompt(String name, [List<PromptOption> options = const []]);
+PromptOption withPromptDescription(String description);
+PromptOption withArgument(String name, [List<ArgumentOption> options = const []]);
+ArgumentOption argumentDescription(String description);
+ArgumentOption requiredArgument();
+PromptMessage newPromptMessage(Role role, Content content);
+GetPromptResult newGetPromptResult(String title, List<PromptMessage> messages);
+```

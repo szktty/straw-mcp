@@ -1,0 +1,14 @@
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  exclude: [ example/**, test/** ]
+linter:
+  rules:
+    camel_case_types: true
+    constant_identifier_names: true
+    lines_longer_than_80_chars: false
+    public_member_api_docs: false
+    use_setters_to_change_properties: false
+    document_ignores: false
+    cascade_invocations: false
+    avoid_catches_without_on_clauses: false
