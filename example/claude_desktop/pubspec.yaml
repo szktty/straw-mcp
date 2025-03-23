@@ -1,0 +1,13 @@
+name: claude_desktop_sample
+description: MCP Server Sample for Claude Desktop
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  straw_mcp:
+    path: ../../
+  intl: ^0.18.0  # For date formatting
+  logging: ^1.3.0

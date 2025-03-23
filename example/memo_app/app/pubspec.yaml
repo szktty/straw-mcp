@@ -1,0 +1,27 @@
+name: memo_app
+description: ""
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  straw_mcp:
+    path: ../../../
+  signals: ^6.0.2
+  shelf: ^1.4.2
+  uuid: ^4.5.1
+  shelf_router: ^1.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  very_good_analysis: ^7.0.0
+
+flutter:
+  uses-material-design: true
