@@ -117,6 +117,4 @@ export 'src/server/stream_server.dart'
         StreamServerContextFunction,
         StreamServerOptions,
         serveStdio;
-export 'src/mcp/logging.dart'
-    show
-        LoggingMessageNotification;
+export 'src/mcp/logging.dart' show LoggingMessageNotification;
