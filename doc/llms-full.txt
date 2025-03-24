@@ -388,8 +388,8 @@ To process notifications from the server (tool list changes, resource updates, e
 ```dart
 // Register a notification handler
 client.onNotification((notification) {
-  final method = notification.notification.method;
-  final params = notification.notification.params;
+  final method = notification.method;
+  final params = notification.params;
   
   switch (method) {
     case 'notifications/resources/updated':
@@ -565,7 +565,7 @@ Future<void> main() async {
     
     // Set up notification handler
     client.onNotification((notification) {
-      final method = notification.notification.method;
+      final method = notification.method;
       logger.info('Notification received: $method');
       
       // Notification processing...
