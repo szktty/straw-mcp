@@ -637,7 +637,7 @@ class ProtocolHandler {
 
   // Notification handling
   void _handleNotification(JsonRpcNotification notification) {
-    final method = notification.notification.method;
+    final method = notification.method;
 
     NotificationHandlerFunction? handler;
     _lock.synchronized(() {
@@ -764,15 +764,17 @@ class ProtocolHandler {
     });
   }
 
+  @deprecated
   /// Sends a notification to the current client.
-  void sendNotificationToClient(String method, Map<String, dynamic> params) {
+  void sendNotificationToClient(String method, dynamic params) {
     if (_currentClient == null) {
       return;
     }
 
     final notification = JsonRpcNotification(
-      jsonRpcVersion,
-      Notification(method, NotificationParams(additionalFields: params)),
+      version: jsonRpcVersion,
+      method: method,
+      params: params,
     );
 
     _notifications.add(ServerNotification(_currentClient!, notification));
@@ -827,7 +829,11 @@ class ProtocolHandler {
   ///
   /// - [notification]: The notification to send
   void sendNotification(Notification notification) {
-    final jsonNotification = JsonRpcNotification(jsonRpcVersion, notification);
+    final jsonNotification = JsonRpcNotification(
+      version: jsonRpcVersion,
+      method: notification.method,
+      params: notification.params,
+    );
 
     if (_currentClient == null) {
       return;

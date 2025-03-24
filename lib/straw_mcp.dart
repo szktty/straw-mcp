@@ -59,9 +59,11 @@ export 'src/mcp/tools.dart'
         newToolResultError,
         newToolResultText,
         required,
+        withArray,
         withBoolean,
         withDescription,
         withNumber,
+        withObject,
         withString;
 export 'src/mcp/types.dart'
     show

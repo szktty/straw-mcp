@@ -45,10 +45,11 @@ class Notification {
   Notification(this.method, this.params);
 
   final String method;
-  final NotificationParams params;
+  final dynamic params;
 }
 
 /// Parameters for MCP notifications.
+@deprecated
 class NotificationParams {
   NotificationParams({this.meta, Map<String, dynamic>? additionalFields})
     : additionalFields = additionalFields ?? {};
@@ -139,29 +140,35 @@ class JsonRpcRequest implements JsonRpcMessage {
 
 /// Represents a JSON-RPC notification.
 class JsonRpcNotification implements JsonRpcMessage {
-  JsonRpcNotification(this.jsonrpc, this.notification);
+  JsonRpcNotification({
+    required this.version,
+    required this.method,
+    this.params,
+  });
 
   /// Creates a JSON-RPC notification from a JSON map.
   factory JsonRpcNotification.fromJson(Map<String, dynamic> json) {
-    final notif = Notification(
-      json['method'] as String,
-      NotificationParams.fromJson(
-        json['params'] as Map<String, dynamic>? ?? {},
-      ),
+    final method = json['method'] as String;
+    final params = NotificationParams.fromJson(
+      json['params'] as Map<String, dynamic>? ?? {},
     );
-
-    return JsonRpcNotification(json['jsonrpc'] as String, notif);
+    return JsonRpcNotification(
+      version: json['jsonrpc'] as String,
+      method: method,
+      params: params,
+    );
   }
 
-  final String jsonrpc;
-  final Notification notification;
+  final String version;
+  final String method;
+  final dynamic params;
 
   /// Converts the notification to a JSON map.
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
-      'jsonrpc': jsonrpc,
-      'method': notification.method,
-      'params': notification.params.toJson(),
+      'jsonrpc': version,
+      'method': method,
+      'params': params,
     };
   }
 }

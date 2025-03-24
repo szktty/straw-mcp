@@ -389,6 +389,38 @@ ToolOption withBoolean(
   };
 }
 
+/// Adds a list parameter to a tool.
+ToolOption withArray(
+  String name, [
+  List<ToolParameterOption> options = const [],
+]) {
+  return (Tool tool) {
+    final param = ToolParameter(name: name, type: 'array');
+
+    for (final option in options) {
+      option(param);
+    }
+
+    tool.parameters.add(param);
+  };
+}
+
+/// Adds a map parameter to a tool.
+ToolOption withObject(
+  String name, [
+  List<ToolParameterOption> options = const [],
+]) {
+  return (Tool tool) {
+    final param = ToolParameter(name: name, type: 'object');
+
+    for (final option in options) {
+      option(param);
+    }
+
+    tool.parameters.add(param);
+  };
+}
+
 /// Sets a parameter as required.
 ToolParameterOption required() {
   return (ToolParameter param) {

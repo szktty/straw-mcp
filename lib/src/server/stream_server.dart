@@ -203,7 +203,7 @@ class StreamServer {
       if (notification.context.clientId == _defaultContext.clientId) {
         try {
           _logDebug(
-            'Sending notification: ${notification.notification.notification.method}',
+            'Sending notification: ${notification.notification.method}',
           );
           _writeResponse(notification.notification, outputSink);
         } on Exception catch (e) {
