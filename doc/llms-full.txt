@@ -1013,17 +1013,17 @@ Log notifications from server to client:
 
 ```dart
 // Send notifications according to log level
-server.loggingNotification(LoggingMessageNotification(
+server.sendLoggingNotification(LoggingMessageNotification(
   level: LoggingLevel.info,
   data: 'Server started successfully',
 ));
 
-server.loggingNotification(LoggingMessageNotification(
+server.sendLoggingNotification(LoggingMessageNotification(
   level: LoggingLevel.warning,
   data: 'Warning: Server resources are running low',
 ));
 
-server.loggingNotification(LoggingMessageNotification(
+server.sendLoggingNotification(LoggingMessageNotification(
   level: LoggingLevel.error,
   data: 'Error: Failed to connect to database',
 ));
