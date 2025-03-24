@@ -819,6 +819,23 @@ class ProtocolHandler {
     sendNotificationToClient(method, params);
   }
 
+  /// Sends a notification to the client.
+  ///
+  /// This is a general-purpose method to send any type of notification to the client.
+  /// Use this method when you need to send custom notifications that are not
+  /// covered by specific methods like [sendLoggingNotification].
+  ///
+  /// - [notification]: The notification to send
+  void sendNotification(Notification notification) {
+    final jsonNotification = JsonRpcNotification(jsonRpcVersion, notification);
+
+    if (_currentClient == null) {
+      return;
+    }
+
+    _notifications.add(ServerNotification(_currentClient!, jsonNotification));
+  }
+
   /// Flag indicating whether the server is closed
   bool _isClosed = false;
 
