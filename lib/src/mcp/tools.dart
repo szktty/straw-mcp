@@ -209,7 +209,13 @@ class Tool extends Annotated {
     List<ToolInput>? parameters,
     super.audience,
     super.priority,
-  }) : parameters = parameters ?? [];
+  }) : parameters = parameters ?? [] {
+    if (!RegExp(r'^[a-zA-Z0-9_-]{1,64}$').hasMatch(name)) {
+      throw ArgumentError(
+        "Tool name must match pattern '^[a-zA-Z0-9_-]{1,64}\$'. Got: $name",
+      );
+    }
+  }
 
   /// Creates a tool from a JSON map.
   factory Tool.fromJson(Map<String, dynamic> json) {
