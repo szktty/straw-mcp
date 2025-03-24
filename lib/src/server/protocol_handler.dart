@@ -808,7 +808,7 @@ class ProtocolHandler {
   /// notifications or set a logging level via setLevel request.
   ///
   /// - [notification]: The log message notification to send
-  void loggingNotification(LoggingMessageNotification notification) {
+  void sendLoggingNotification(LoggingMessageNotification notification) {
     if (!capabilities.logging) {
       return; // Logging not supported/enabled
     }
