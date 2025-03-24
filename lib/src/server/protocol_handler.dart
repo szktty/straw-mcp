@@ -813,9 +813,9 @@ class ProtocolHandler {
       return; // Logging not supported/enabled
     }
 
-    final method = notification.notification.method;
-    final params = notification.notification.params.toJson();
-    
+    final method = notification.method;
+    final params = notification.params.toJson();
+
     sendNotificationToClient(method, params);
   }
 
