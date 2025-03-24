@@ -117,7 +117,7 @@ class ToolListChangedNotification extends Notification {
 }
 
 /// Represents a tool parameter.
-class ToolParameter extends Annotated {
+class ToolInput extends Annotated {
   /// Creates a new tool parameter.
   ///
   /// - [name]: The parameter name
@@ -128,7 +128,7 @@ class ToolParameter extends Annotated {
   /// - [defaultValue]: Optional default value for the parameter
   /// - [audience]: Optional audience annotation
   /// - [priority]: Optional priority annotation
-  ToolParameter({
+  ToolInput({
     required this.name,
     required this.type,
     this.required,
@@ -140,12 +140,12 @@ class ToolParameter extends Annotated {
   });
 
   /// Creates a tool parameter from a JSON map.
-  factory ToolParameter.fromJson(Map<String, dynamic> json) {
+  factory ToolInput.fromJson(Map<String, dynamic> json) {
     final annotated = Annotated.fromJson(
       json['annotations'] as Map<String, dynamic>?,
     );
 
-    return ToolParameter(
+    return ToolInput(
       name: json['name'] as String,
       type: json['type'] as String,
       required: json['required'] as bool?,
@@ -206,7 +206,7 @@ class Tool extends Annotated {
   Tool({
     required this.name,
     this.description,
-    List<ToolParameter>? parameters,
+    List<ToolInput>? parameters,
     super.audience,
     super.priority,
   }) : parameters = parameters ?? [];
@@ -216,7 +216,7 @@ class Tool extends Annotated {
     final annotated = Annotated.fromJson(
       json['annotations'] as Map<String, dynamic>?,
     );
-    final params = <ToolParameter>[];
+    final params = <ToolInput>[];
 
     if (json['inputSchema'] != null) {
       final inputSchema = json['inputSchema'] as Map<String, dynamic>;
@@ -230,7 +230,7 @@ class Tool extends Annotated {
         final propSchema = entry.value as Map<String, dynamic>;
 
         params.add(
-          ToolParameter(
+          ToolInput(
             name: name,
             type: propSchema['type'] as String? ?? 'string',
             required: required.contains(name),
@@ -261,7 +261,7 @@ class Tool extends Annotated {
   String? description;
 
   /// The list of parameters that the tool accepts.
-  List<ToolParameter> parameters;
+  List<ToolInput> parameters;
 
   /// Converts the tool to a JSON map.
   Map<String, dynamic> toJson() {
@@ -321,7 +321,7 @@ class Tool extends Annotated {
 typedef ToolOption = void Function(Tool tool);
 
 /// Function type for tool parameter options.
-typedef ToolParameterOption = void Function(ToolParameter param);
+typedef ToolInputOption = void Function(ToolInput param);
 
 /// Creates a new tool with the given options.
 Tool newTool(String name, [List<ToolOption> options = const []]) {
@@ -342,12 +342,9 @@ ToolOption withDescription(String description) {
 }
 
 /// Adds a string parameter to a tool.
-ToolOption withString(
-  String name, [
-  List<ToolParameterOption> options = const [],
-]) {
+ToolOption withString(String name, [List<ToolInputOption> options = const []]) {
   return (Tool tool) {
-    final param = ToolParameter(name: name, type: 'string');
+    final param = ToolInput(name: name, type: 'string');
 
     for (final option in options) {
       option(param);
@@ -358,12 +355,9 @@ ToolOption withString(
 }
 
 /// Adds a number parameter to a tool.
-ToolOption withNumber(
-  String name, [
-  List<ToolParameterOption> options = const [],
-]) {
+ToolOption withNumber(String name, [List<ToolInputOption> options = const []]) {
   return (Tool tool) {
-    final param = ToolParameter(name: name, type: 'number');
+    final param = ToolInput(name: name, type: 'number');
 
     for (final option in options) {
       option(param);
@@ -376,10 +370,10 @@ ToolOption withNumber(
 /// Adds a boolean parameter to a tool.
 ToolOption withBoolean(
   String name, [
-  List<ToolParameterOption> options = const [],
+  List<ToolInputOption> options = const [],
 ]) {
   return (Tool tool) {
-    final param = ToolParameter(name: name, type: 'boolean');
+    final param = ToolInput(name: name, type: 'boolean');
 
     for (final option in options) {
       option(param);
@@ -390,12 +384,9 @@ ToolOption withBoolean(
 }
 
 /// Adds a list parameter to a tool.
-ToolOption withArray(
-  String name, [
-  List<ToolParameterOption> options = const [],
-]) {
+ToolOption withArray(String name, [List<ToolInputOption> options = const []]) {
   return (Tool tool) {
-    final param = ToolParameter(name: name, type: 'array');
+    final param = ToolInput(name: name, type: 'array');
 
     for (final option in options) {
       option(param);
@@ -406,12 +397,9 @@ ToolOption withArray(
 }
 
 /// Adds a map parameter to a tool.
-ToolOption withObject(
-  String name, [
-  List<ToolParameterOption> options = const [],
-]) {
+ToolOption withObject(String name, [List<ToolInputOption> options = const []]) {
   return (Tool tool) {
-    final param = ToolParameter(name: name, type: 'object');
+    final param = ToolInput(name: name, type: 'object');
 
     for (final option in options) {
       option(param);
@@ -422,29 +410,29 @@ ToolOption withObject(
 }
 
 /// Sets a parameter as required.
-ToolParameterOption required() {
-  return (ToolParameter param) {
+ToolInputOption required() {
+  return (ToolInput param) {
     param.required = true;
   };
 }
 
 /// Adds a description to a parameter.
-ToolParameterOption description(String desc) {
-  return (ToolParameter param) {
+ToolInputOption description(String desc) {
+  return (ToolInput param) {
     param.description = desc;
   };
 }
 
 /// Adds enum values to a parameter.
-ToolParameterOption enumValues(List<String> values) {
-  return (ToolParameter param) {
+ToolInputOption enumValues(List<String> values) {
+  return (ToolInput param) {
     param.enumValues = values;
   };
 }
 
 /// Sets a default value for a parameter.
-ToolParameterOption defaultValue(dynamic value) {
-  return (ToolParameter param) {
+ToolInputOption defaultValue(dynamic value) {
+  return (ToolInput param) {
     param.defaultValue = value;
   };
 }
