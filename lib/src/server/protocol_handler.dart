@@ -819,17 +819,17 @@ class ProtocolHandler {
     sendNotificationToClient(method, params);
   }
 
-  /// サーバーが閉じられたかどうかのフラグ
+  /// Flag indicating whether the server is closed
   bool _isClosed = false;
 
-  /// サーバーの閉じ方の状態
+  /// State of the server closure
   final StreamController<bool> _closeStateController =
       StreamController<bool>.broadcast();
 
-  /// サーバーの閉じ方の状態を通知するストリーム
+  /// Stream notifying the state of the server closure
   Stream<bool> get closeState => _closeStateController.stream;
 
-  /// サーバーが閉じているかどうか
+  /// Whether the server is closed
   bool get isClosed => _isClosed;
 
   /// サーバーを閉じて、リソースを解放します。
