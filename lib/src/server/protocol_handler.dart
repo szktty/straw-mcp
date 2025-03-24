@@ -7,6 +7,8 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 
 import 'package:straw_mcp/src/json_rpc/message.dart';
+import 'package:straw_mcp/src/client/client.dart' show LoggingLevel;
+import 'package:straw_mcp/src/mcp/logging.dart';
 import 'package:straw_mcp/src/mcp/prompts.dart';
 import 'package:straw_mcp/src/mcp/resources.dart';
 import 'package:straw_mcp/src/mcp/tools.dart';
@@ -797,6 +799,24 @@ class ProtocolHandler {
   /// Logs an error message
   void logError(String message) {
     logger?.severe(message);
+  }
+
+  /// Sends a log message notification to the client.
+  ///
+  /// This method can be used to send log messages to the client when the server
+  /// has logging capabilities enabled. The client must have registered for these
+  /// notifications or set a logging level via setLevel request.
+  ///
+  /// - [notification]: The log message notification to send
+  void loggingNotification(LoggingMessageNotification notification) {
+    if (!capabilities.logging) {
+      return; // Logging not supported/enabled
+    }
+
+    final method = notification.notification.method;
+    final params = notification.notification.params.toJson();
+    
+    sendNotificationToClient(method, params);
   }
 
   /// サーバーが閉じられたかどうかのフラグ

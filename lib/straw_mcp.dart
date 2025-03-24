@@ -4,6 +4,7 @@ export 'src/client/client.dart'
         CompleteRequest,
         CompleteResult,
         CompletionValues,
+        LoggingLevel,
         McpError,
         SetLevelRequest;
 export 'src/client/sse/sse_client.dart' show SseClient;
@@ -116,3 +117,6 @@ export 'src/server/stream_server.dart'
         StreamServerContextFunction,
         StreamServerOptions,
         serveStdio;
+export 'src/mcp/logging.dart'
+    show
+        LoggingMessageNotification;
