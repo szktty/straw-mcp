@@ -7,7 +7,6 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 
 import 'package:straw_mcp/src/json_rpc/message.dart';
-import 'package:straw_mcp/src/client/client.dart' show LoggingLevel;
 import 'package:straw_mcp/src/mcp/logging.dart';
 import 'package:straw_mcp/src/mcp/prompts.dart';
 import 'package:straw_mcp/src/mcp/resources.dart';
@@ -714,7 +713,7 @@ class ProtocolHandler {
     });
 
     if (shouldNotify) {
-      sendNotificationToClient('notifications/tools/list_changed', {});
+      sendNotificationToClient('notifications/tools/list_changed', null);
     }
   }
 
@@ -733,7 +732,7 @@ class ProtocolHandler {
     });
 
     if (shouldNotify) {
-      sendNotificationToClient('notifications/tools/list_changed', {});
+      sendNotificationToClient('notifications/tools/list_changed', null);
     }
   }
 
@@ -750,7 +749,7 @@ class ProtocolHandler {
     });
 
     if (shouldNotify) {
-      sendNotificationToClient('notifications/tools/list_changed', {});
+      sendNotificationToClient('notifications/tools/list_changed', null);
     }
   }
 
@@ -816,7 +815,7 @@ class ProtocolHandler {
     }
 
     final method = notification.method;
-    final params = notification.params.toJson();
+    final params = notification.params;
 
     sendNotificationToClient(method, params);
   }
