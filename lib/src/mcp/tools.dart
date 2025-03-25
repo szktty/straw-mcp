@@ -327,7 +327,7 @@ class Tool extends Annotated {
 typedef ToolOption = void Function(Tool tool);
 
 /// Function type for tool parameter options.
-typedef ToolInputOption = void Function(ToolParameter param);
+typedef ToolParameterOption = void Function(ToolParameter param);
 
 /// Creates a new tool with the given options.
 Tool newTool(String name, [List<ToolOption> options = const []]) {
@@ -348,7 +348,10 @@ ToolOption withDescription(String description) {
 }
 
 /// Adds a string parameter to a tool.
-ToolOption withString(String name, [List<ToolInputOption> options = const []]) {
+ToolOption withString(
+  String name, [
+  List<ToolParameterOption> options = const [],
+]) {
   return (Tool tool) {
     final param = ToolParameter(name: name, type: 'string');
 
@@ -361,7 +364,10 @@ ToolOption withString(String name, [List<ToolInputOption> options = const []]) {
 }
 
 /// Adds a number parameter to a tool.
-ToolOption withNumber(String name, [List<ToolInputOption> options = const []]) {
+ToolOption withNumber(
+  String name, [
+  List<ToolParameterOption> options = const [],
+]) {
   return (Tool tool) {
     final param = ToolParameter(name: name, type: 'number');
 
@@ -376,7 +382,7 @@ ToolOption withNumber(String name, [List<ToolInputOption> options = const []]) {
 /// Adds a boolean parameter to a tool.
 ToolOption withBoolean(
   String name, [
-  List<ToolInputOption> options = const [],
+  List<ToolParameterOption> options = const [],
 ]) {
   return (Tool tool) {
     final param = ToolParameter(name: name, type: 'boolean');
@@ -390,7 +396,10 @@ ToolOption withBoolean(
 }
 
 /// Adds a list parameter to a tool.
-ToolOption withArray(String name, [List<ToolInputOption> options = const []]) {
+ToolOption withArray(
+  String name, [
+  List<ToolParameterOption> options = const [],
+]) {
   return (Tool tool) {
     final param = ToolParameter(name: name, type: 'array');
 
@@ -403,7 +412,10 @@ ToolOption withArray(String name, [List<ToolInputOption> options = const []]) {
 }
 
 /// Adds a map parameter to a tool.
-ToolOption withObject(String name, [List<ToolInputOption> options = const []]) {
+ToolOption withObject(
+  String name, [
+  List<ToolParameterOption> options = const [],
+]) {
   return (Tool tool) {
     final param = ToolParameter(name: name, type: 'object');
 
@@ -416,28 +428,28 @@ ToolOption withObject(String name, [List<ToolInputOption> options = const []]) {
 }
 
 /// Sets a parameter as required.
-ToolInputOption required() {
+ToolParameterOption required() {
   return (ToolParameter param) {
     param.required = true;
   };
 }
 
 /// Adds a description to a parameter.
-ToolInputOption description(String desc) {
+ToolParameterOption description(String desc) {
   return (ToolParameter param) {
     param.description = desc;
   };
 }
 
 /// Adds enum values to a parameter.
-ToolInputOption enumValues(List<String> values) {
+ToolParameterOption enumValues(List<String> values) {
   return (ToolParameter param) {
     param.enumValues = values;
   };
 }
 
 /// Sets a default value for a parameter.
-ToolInputOption defaultValue(dynamic value) {
+ToolParameterOption defaultValue(dynamic value) {
   return (ToolParameter param) {
     param.defaultValue = value;
   };

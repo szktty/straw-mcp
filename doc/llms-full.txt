@@ -1195,10 +1195,10 @@ Represents a tool provided by the server.
 class Tool extends Annotated {
   String name;                       // Tool name
   String? description;               // Tool description
-  List<ToolInput> inputSchema;       // Tool input schema
+  List<ToolParameter> inputSchema;   // Tool parameters
 }
 
-class ToolInput extends Annotated {
+class ToolParameter extends Annotated {
   String name;                       // Parameter name
   String type;                       // Parameter type (string, number, boolean, etc.)
   bool? required;                    // Whether it's required
@@ -1535,13 +1535,13 @@ Helper methods are provided for creating tools, resources, and prompts on the se
 // Tool-related
 Tool newTool(String name, [List<ToolOption> options = const []]);
 ToolOption withDescription(String description);
-ToolOption withString(String name, [List<ToolInputOption> options = const []]);
-ToolOption withNumber(String name, [List<ToolInputOption> options = const []]);
-ToolOption withBoolean(String name, [List<ToolInputOption> options = const []]);
-ToolInputOption required();
-ToolInputOption description(String desc);
-ToolInputOption enumValues(List<String> values);
-ToolInputOption defaultValue(dynamic value);
+ToolOption withString(String name, [List<ToolParameterOption> options = const []]);
+ToolOption withNumber(String name, [List<ToolParameterOption> options = const []]);
+ToolOption withBoolean(String name, [List<ToolParameterOption> options = const []]);
+ToolParameterOption required();
+ToolParameterOption description(String desc);
+ToolParameterOption enumValues(List<String> values);
+ToolParameterOption defaultValue(dynamic value);
 
 // Tool result creation
 CallToolResult newToolResultText(String text);
