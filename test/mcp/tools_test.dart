@@ -218,7 +218,7 @@ void main() {
 
       // Check the request JSON
       expect(request.method, equals('tools/call'));
-      expect(request.params['name'], equals('calculator'));
+      expect(request.name, equals('calculator'));
       expect(request.params['arguments'], isA<Map>());
       expect(request.params['arguments']['a'], equals(5));
       expect(request.params['arguments']['b'], equals(3));

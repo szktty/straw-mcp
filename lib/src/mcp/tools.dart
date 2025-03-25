@@ -40,8 +40,10 @@ class ListToolsResult extends PaginatedResult {
 
 /// Request for calling a tool.
 class CallToolRequest extends Request {
-  CallToolRequest({required String name, Map<String, dynamic>? arguments})
-    : super('tools/call', {'name': name, 'arguments': arguments ?? {}});
+  CallToolRequest({required this.name, Map<String, dynamic>? arguments})
+    : super('tools/call', arguments ?? {});
+
+  final String name;
 }
 
 // Content classes are now imported from 'contents.dart'

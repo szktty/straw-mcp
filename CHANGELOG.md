@@ -6,6 +6,7 @@
 - Add `ProtocolHandler.sendLoggingNotification` method.
 - Add `withArray` function.
 - Add `withObject` function.
+- Add `name` property to `CallToolRequest`.
 - Remove `NotificationParams` class.
 - Restruct `JsonRpcNotification` class.
 - `Tool` constructor validates `name`.
