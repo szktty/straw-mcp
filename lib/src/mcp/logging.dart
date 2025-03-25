@@ -18,14 +18,9 @@ class LoggingMessageNotification extends Notification {
     required LoggingLevel level,
     required Object data,
     String? logger,
-  }) : super(
-         'notifications/message',
-         NotificationParams(
-           additionalFields: {
-             'level': level.toString(),
-             'data': data,
-             if (logger != null) 'logger': logger,
-           },
-         ),
-       );
+  }) : super('notifications/message', {
+         'level': level.toString(),
+         'data': data,
+         if (logger != null) 'logger': logger,
+       });
 }

@@ -113,7 +113,7 @@ CallToolResult newToolResultError(String errorMessage) {
 /// Notification indicating that the tool list has changed.
 class ToolListChangedNotification extends Notification {
   ToolListChangedNotification()
-    : super('notifications/tools/list_changed', NotificationParams());
+    : super('notifications/tools/list_changed', null);
 }
 
 /// Represents a tool parameter.

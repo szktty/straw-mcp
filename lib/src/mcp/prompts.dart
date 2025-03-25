@@ -85,7 +85,7 @@ GetPromptResult newGetPromptResult(String title, List<PromptMessage> messages) {
 /// Notification indicating that the prompt list has changed.
 class PromptListChangedNotification extends Notification {
   PromptListChangedNotification()
-    : super('notifications/prompts/list_changed', NotificationParams());
+    : super('notifications/prompts/list_changed', null);
 }
 
 /// Represents a prompt in the MCP protocol.

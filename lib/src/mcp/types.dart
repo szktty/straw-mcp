@@ -48,45 +48,6 @@ class Notification {
   final dynamic params;
 }
 
-/// Parameters for MCP notifications.
-@deprecated
-class NotificationParams {
-  NotificationParams({this.meta, Map<String, dynamic>? additionalFields})
-    : additionalFields = additionalFields ?? {};
-
-  /// Creates a NotificationParams instance from JSON.
-  factory NotificationParams.fromJson(Map<String, dynamic> json) {
-    final params = NotificationParams();
-
-    json.forEach((key, value) {
-      if (key == '_meta' && value is Map<String, dynamic>) {
-        params.meta = value;
-      } else {
-        params.additionalFields[key] = value;
-      }
-    });
-
-    return params;
-  }
-
-  Map<String, dynamic>? meta;
-  Map<String, dynamic> additionalFields;
-
-  /// Converts the notification parameters to JSON.
-  Map<String, dynamic> toJson() {
-    final result = <String, dynamic>{};
-    if (meta != null) {
-      result['_meta'] = meta;
-    }
-    additionalFields.forEach((key, value) {
-      if (key != '_meta') {
-        result[key] = value;
-      }
-    });
-    return result;
-  }
-}
-
 /// Base class for all MCP results.
 class Result {
   Result({this.meta});
@@ -149,9 +110,7 @@ class JsonRpcNotification implements JsonRpcMessage {
   /// Creates a JSON-RPC notification from a JSON map.
   factory JsonRpcNotification.fromJson(Map<String, dynamic> json) {
     final method = json['method'] as String;
-    final params = NotificationParams.fromJson(
-      json['params'] as Map<String, dynamic>? ?? {},
-    );
+    final params = json['params'] as Map<String, dynamic>? ?? {};
     return JsonRpcNotification(
       version: json['jsonrpc'] as String,
       method: method,
@@ -255,15 +214,10 @@ class EmptyResult extends Result {}
 /// Notification for cancelling a previous request.
 class CancelledNotification extends Notification {
   CancelledNotification(RequestId requestId, {String? reason})
-    : super(
-        'cancelled',
-        NotificationParams(
-          additionalFields: {
-            'requestId': requestId,
-            if (reason != null) 'reason': reason,
-          },
-        ),
-      );
+    : super('cancelled', {
+        'requestId': requestId,
+        if (reason != null) 'reason': reason,
+      });
 }
 
 /// Client capabilities for the MCP protocol.
@@ -528,7 +482,7 @@ class InitializeResult extends Result {
 
 /// Notification sent after initialization is complete.
 class InitializedNotification extends Notification {
-  InitializedNotification() : super('initialized', NotificationParams());
+  InitializedNotification() : super('initialized', null);
 }
 
 /// Request for pinging the server.
@@ -542,16 +496,11 @@ class ProgressNotification extends Notification {
     required ProgressToken progressToken,
     required double progress,
     double? total,
-  }) : super(
-         'progress',
-         NotificationParams(
-           additionalFields: {
-             'progressToken': progressToken,
-             'progress': progress,
-             if (total != null) 'total': total,
-           },
-         ),
-       );
+  }) : super('progress', {
+         'progressToken': progressToken,
+         'progress': progress,
+         if (total != null) 'total': total,
+       });
 }
 
 /// Base class for paginated requests.

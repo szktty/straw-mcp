@@ -112,7 +112,7 @@ class ReadResourceResult extends Result {
 /// Notification indicating that the resource list has changed.
 class ResourceListChangedNotification extends Notification {
   ResourceListChangedNotification()
-    : super('notifications/resources/list_changed', NotificationParams());
+    : super('notifications/resources/list_changed', null);
 }
 
 /// Request for subscribing to resource updates.
@@ -130,10 +130,7 @@ class UnsubscribeRequest extends Request {
 /// Notification indicating that a resource has been updated.
 class ResourceUpdatedNotification extends Notification {
   ResourceUpdatedNotification({required String uri})
-    : super(
-        'notifications/resources/updated',
-        NotificationParams(additionalFields: {'uri': uri}),
-      );
+    : super('notifications/resources/updated', {'uri': uri});
 }
 
 /// Base class for annotated objects in the MCP protocol.
