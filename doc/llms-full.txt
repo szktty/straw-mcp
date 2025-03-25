@@ -1538,6 +1538,8 @@ ToolOption withDescription(String description);
 ToolOption withString(String name, [List<ToolParameterOption> options = const []]);
 ToolOption withNumber(String name, [List<ToolParameterOption> options = const []]);
 ToolOption withBoolean(String name, [List<ToolParameterOption> options = const []]);
+ToolOption withArray(String name, [List<ToolParameterOption> options = const []]);
+ToolOption withObject(String name, [List<ToolParameterOption> options = const []]);
 ToolParameterOption required();
 ToolParameterOption description(String desc);
 ToolParameterOption enumValues(List<String> values);
