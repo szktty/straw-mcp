@@ -218,7 +218,7 @@ for (final tool in toolsResult.tools) {
   print('  Description: ${tool.description}');
   
   // Tool parameter information
-  for (final param in tool.parameters) {
+  for (final param in tool.inputSchema) {
     print('  Parameter: ${param.name} (${param.type})');
     print('    Required: ${param.required}');
     print('    Description: ${param.description}');
@@ -1195,7 +1195,7 @@ Represents a tool provided by the server.
 class Tool extends Annotated {
   String name;                       // Tool name
   String? description;               // Tool description
-  List<ToolInput> parameters;    // Tool parameters
+  List<ToolInput> inputSchema;       // Tool input schema
 }
 
 class ToolInput extends Annotated {

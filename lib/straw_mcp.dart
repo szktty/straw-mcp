@@ -50,7 +50,7 @@ export 'src/mcp/tools.dart'
         Tool,
         ToolListChangedNotification,
         ToolOption,
-        ToolInput,
+        ToolParameter,
         ToolInputOption,
         defaultValue,
         description,
