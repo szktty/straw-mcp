@@ -722,6 +722,13 @@ server.addTool(
 );
 ```
 
+### Tool Name
+
+The tool name can only contain alphanumeric characters (both uppercase and lowercase), underscores, and hyphens. The length of the name must be between 1 and 64 characters.
+
+If the tool name is invalid, an exception will be thrown.
+
+
 ### Tool Options and Parameters
 
 Tools can have the following options:
