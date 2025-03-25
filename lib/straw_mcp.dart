@@ -12,6 +12,7 @@ export 'src/client/sse/sse_client_transport.dart' show SseClientOptions;
 export 'src/client/stream_client.dart' show StreamClient, StreamClientOptions;
 export 'src/mcp/contents.dart'
     show Content, EmbeddedResource, ImageContent, TextContent;
+export 'src/mcp/logging.dart' show LoggingMessageNotification;
 export 'src/mcp/prompts.dart'
     show
         GetPromptRequest,
@@ -76,7 +77,6 @@ export 'src/mcp/types.dart'
         JsonRpcMessage,
         JsonRpcNotification,
         Notification,
-        NotificationParams,
         PingRequest,
         ProgressNotification,
         ProgressToken,
@@ -119,4 +119,3 @@ export 'src/server/stream_server.dart'
         StreamServerContextFunction,
         StreamServerOptions,
         serveStdio;
-export 'src/mcp/logging.dart' show LoggingMessageNotification;

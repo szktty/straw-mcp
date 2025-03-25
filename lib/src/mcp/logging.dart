@@ -15,12 +15,18 @@ class LoggingMessageNotification extends Notification {
   /// - [data]: The data to be logged (can be any JSON-serializable value)
   /// - [logger]: Optional name of the logger issuing this message
   LoggingMessageNotification({
-    required LoggingLevel level,
-    required Object data,
+    required this.level,
+    required this.data,
     String? logger,
   }) : super('notifications/message', {
          'level': level.toString(),
          'data': data,
          if (logger != null) 'logger': logger,
        });
+
+  /// The severity level of the log message.
+  final LoggingLevel level;
+
+  /// The data to be logged.
+  final Object data;
 }

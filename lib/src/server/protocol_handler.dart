@@ -763,8 +763,8 @@ class ProtocolHandler {
     });
   }
 
-  @deprecated
   /// Sends a notification to the current client.
+  @Deprecated('Use sendNotification instead')
   void sendNotificationToClient(String method, dynamic params) {
     if (_currentClient == null) {
       return;
