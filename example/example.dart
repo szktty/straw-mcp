@@ -111,8 +111,8 @@ Future<void> runBoth() async {
 }
 
 /// Creates and returns an MCP server with echo functionality.
-ProtocolHandler createEchoServer() {
-  return ProtocolHandler('MCP Echo Server', '1.0.0', [
+Server createEchoServer() {
+  return Server('MCP Echo Server', '1.0.0', [
       withToolCapabilities(listChanged: true),
       withResourceCapabilities(subscribe: false, listChanged: true),
       withPromptCapabilities(listChanged: true),

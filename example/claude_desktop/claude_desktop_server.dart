@@ -27,7 +27,7 @@ void main() async {
   final logger = Logger('ClaudeDesktopServer');
 
   // Create the MCP server with appropriate capabilities
-  final handler = ProtocolHandler('Dart MCP Claude Desktop Server', '0.1.0', [
+  final server = Server('Dart MCP Claude Desktop Server', '0.1.0', [
     withToolCapabilities(listChanged: true),
     withResourceCapabilities(subscribe: true, listChanged: true),
     withPromptCapabilities(listChanged: false),
@@ -38,12 +38,12 @@ void main() async {
   ]);
 
   // Register tools
-  _registerTextTools(handler);
-  _registerMathTools(handler);
-  _registerUtilityTools(handler);
+  _registerTextTools(server);
+  _registerMathTools(server);
+  _registerUtilityTools(server);
 
   // Add resources if needed
-  _registerResources(handler);
+  _registerResources(server);
 
   logger.info('Starting Claude Desktop MCP server (stdio)...');
 
@@ -95,11 +95,11 @@ void main() async {
   }
 
   // Set up notification listener and log response contents
-  handler.notifications.listen((notification) {
+  server.notifications.listen((notification) {
     if (responseLogFile != null) {
       try {
         final timestamp = DateTime.now().toIso8601String();
-        final method = notification.method;
+        final method = notification.notification.method;
         responseLogFile.writeln('$timestamp NOTIFICATION: $method');
       } catch (e) {
         logger.warning('Failed to log notification: $e');
@@ -181,8 +181,8 @@ void main() async {
     });
 
     await serveStdio(
-      handler,
-      options: StreamServerOptions.stdio(
+      server,
+      options: StreamServerTransportOptions.stdio(
         logger: Logger('StreamServer'),
         logFilePath: logFilePath.isNotEmpty ? logFilePath : null,
       ),
@@ -262,9 +262,9 @@ class _LoggingIOSink implements IOSink {
 }
 
 /// Register text manipulation tools
-void _registerTextTools(ProtocolHandler handler) {
+void _registerTextTools(Server server) {
   // Text Count tool
-  handler.addTool(
+  server.addTool(
     newTool('text_count', [
       withString('text', [required(), description('Text to analyze')]),
     ]),
@@ -287,7 +287,7 @@ void _registerTextTools(ProtocolHandler handler) {
   );
 
   // Text Format tool
-  handler.addTool(
+  server.addTool(
     newTool('text_format', [
       withString('text', [required(), description('Text to format')]),
       withString('format', [
@@ -318,7 +318,7 @@ void _registerTextTools(ProtocolHandler handler) {
   );
 
   // Text Split tool
-  handler.addTool(
+  server.addTool(
     newTool('text_split', [
       withString('text', [required(), description('Text to split')]),
       withString('delimiter', [
@@ -339,9 +339,9 @@ void _registerTextTools(ProtocolHandler handler) {
 }
 
 /// Register mathematical calculation tools
-void _registerMathTools(ProtocolHandler handler) {
+void _registerMathTools(Server server) {
   // Calculator tool
-  handler.addTool(
+  server.addTool(
     newTool('calculator', [
       withString('expression', [
         required(),
@@ -365,7 +365,7 @@ void _registerMathTools(ProtocolHandler handler) {
   );
 
   // Statistics tool
-  handler.addTool(
+  server.addTool(
     newTool('statistics', [
       withString('numbers', [
         required(),
@@ -421,9 +421,9 @@ void _registerMathTools(ProtocolHandler handler) {
 }
 
 /// Register utility tools
-void _registerUtilityTools(ProtocolHandler handler) {
+void _registerUtilityTools(Server server) {
   // Date and Time tool
-  handler.addTool(
+  server.addTool(
     newTool('date_time', [
       withString('format', [
         description('Date format (optional)'),
@@ -453,7 +453,7 @@ void _registerUtilityTools(ProtocolHandler handler) {
   );
 
   // Random Generator tool
-  handler.addTool(
+  server.addTool(
     newTool('random_generator', [
       withString('type', [
         required(),
@@ -512,7 +512,7 @@ void _registerUtilityTools(ProtocolHandler handler) {
   );
 
   // JSON tools
-  handler.addTool(
+  server.addTool(
     newTool('json_tools', [
       withString('operation', [
         required(),
@@ -569,9 +569,9 @@ void _registerUtilityTools(ProtocolHandler handler) {
 }
 
 /// Register resources
-void _registerResources(ProtocolHandler handler) {
+void _registerResources(Server server) {
   // System info resource
-  handler.addResource(
+  server.addResource(
     Resource(
       uri: 'resource://system/info',
       name: 'System Information',

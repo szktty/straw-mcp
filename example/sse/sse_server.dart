@@ -20,7 +20,7 @@ void main() async {
   final logger = Logger('SSE-Server');
 
   // Create a server instance
-  final handler = ProtocolHandler('SimpleServer', '1.0.0', [
+  final server = Server('SimpleServer', '1.0.0', [
     withResourceCapabilities(subscribe: true, listChanged: true),
     withPromptCapabilities(listChanged: true),
     withToolCapabilities(listChanged: true),
@@ -31,7 +31,7 @@ void main() async {
   ]);
 
   // Add a dynamic text resource that changes over time
-  handler.addResource(
+  server.addResource(
     Resource(
       uri: 'resource://example/hello',
       name: 'Hello Resource',
@@ -54,7 +54,7 @@ void main() async {
   );
 
   // Add a binary resource example
-  handler.addResource(
+  server.addResource(
     Resource(
       uri: 'resource://example/binary',
       name: 'Binary Resource',
@@ -82,7 +82,7 @@ void main() async {
   );
 
   // Add multiple tools
-  handler.addTool(
+  server.addTool(
     newTool('echo', [
       withString('message', [required(), description('Message to echo')]),
     ]),
@@ -99,7 +99,7 @@ void main() async {
     },
   );
 
-  handler.addTool(
+  server.addTool(
     newTool('calculate', [
       withNumber('a', [required(), description('First number')]),
       withNumber('b', [required(), description('Second number')]),
@@ -149,7 +149,7 @@ void main() async {
   );
 
   // Add multiple prompts
-  handler.addPrompt(
+  server.addPrompt(
     Prompt(
       name: 'greet',
       description: 'A simple greeting prompt',
@@ -177,7 +177,7 @@ void main() async {
             role: Role.assistant,
             content: TextContent(
               text:
-                  'Hello, $name! Welcome to the MCP handler. How can I assist you today?',
+                  'Hello, $name! Welcome to the MCP server. How can I assist you today?',
             ),
           ),
         ],
@@ -185,7 +185,7 @@ void main() async {
     },
   );
 
-  handler.addPrompt(
+  server.addPrompt(
     Prompt(
       name: 'code_review',
       description: 'A prompt for code review',
@@ -242,7 +242,7 @@ void main() async {
 
     // Send notification that the resource has changed
     try {
-      handler.sendNotification(
+      server.sendNotification(
         ResourceUpdatedNotification(uri: 'resource://example/hello'),
       );
       logger.info('Resource update notification sent');
@@ -253,8 +253,12 @@ void main() async {
 
   // Start the HTTP server with SSE support
   final sseServer = serveSse(
-    handler,
-    options: SseServerOptions(host: 'localhost', port: 8888, logger: logger),
+    server,
+    options: SseServerTransportOptions(
+      host: 'localhost',
+      port: 8888,
+      logger: logger,
+    ),
   );
 
   logger.info('Server started at http://localhost:8888');
@@ -262,7 +266,7 @@ void main() async {
 
   // Handle termination
   ProcessSignal.sigint.watch().listen((_) {
-    logger.info('Shutting down handler...');
+    logger.info('Shutting down server...');
     sseServer.stop().then((_) {
       exit(0);
     });

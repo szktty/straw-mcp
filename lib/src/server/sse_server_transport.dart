@@ -11,12 +11,12 @@ import 'package:path/path.dart' show dirname;
 import 'package:straw_mcp/src/json_rpc/codec.dart';
 import 'package:straw_mcp/src/json_rpc/message.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
-import 'package:straw_mcp/src/server/protocol_handler.dart';
+import 'package:straw_mcp/src/server/server.dart';
 
 /// Configuration options for SSE server.
-class SseServerOptions {
+class SseServerTransportOptions {
   /// Creates a new set of SSE server options.
-  SseServerOptions({
+  SseServerTransportOptions({
     this.host = 'localhost',
     this.port = 9000,
     this.maxIdleTime = const Duration(minutes: 2),
@@ -51,10 +51,10 @@ class SseServerOptions {
 /// HTTP server implementation for MCP.
 ///
 /// Provides an HTTP interface to an MCP server.
-class SseServer {
+class SseServerTransport {
   /// Creates a new HTTP MCP server.
-  SseServer(
-    this.handler, {
+  SseServerTransport(
+    this.server, {
     required this.host,
     required this.port,
     required this.maxIdleTime,
@@ -65,7 +65,7 @@ class SseServer {
   });
 
   /// The MCP server instance.
-  final ProtocolHandler handler;
+  final Server server;
 
   /// The hostname to bind to.
   final String host;
@@ -125,7 +125,7 @@ class SseServer {
     try {
       _httpServer = await HttpServer.bind(host, port);
       _isRunning = true;
-      handler.logInfo('MCP Server running on http://$host:$port');
+      server.logInfo('MCP Server running on http://$host:$port');
       _log('MCP Server running on http://$host:$port');
 
       // Process incoming requests
@@ -203,10 +203,10 @@ class SseServer {
     final sessionId = request.headers.value('X-Session-ID') ?? 'unknown';
 
     final context = NotificationContext(clientId, sessionId);
-    handler.setCurrentClient(context);
+    server.setCurrentClient(context);
 
     try {
-      final response = await handler.handleMessage(body);
+      final response = await server.handleMessage(body);
 
       request.response.headers.set('Content-Type', 'application/json');
 
@@ -272,7 +272,7 @@ class SseServer {
     }
 
     // Listen for server notifications
-    subscription = handler.notifications.listen(
+    subscription = server.notifications.listen(
       (notification) {
         if (isClosed) return;
 
@@ -394,19 +394,19 @@ class SseServer {
 
 /// Create an HTTP MCP server.
 ///
-/// Returns a [SseServer] instance that can be used to control the server.
-/// Use the [SseServer.start] method to begin listening for connections.
-SseServer serveSse(
-  ProtocolHandler handler, {
-  SseServerOptions? options,
+/// Returns a [SseServerTransport] instance that can be used to control the server.
+/// Use the [SseServerTransport.start] method to begin listening for connections.
+SseServerTransport serveSse(
+  Server server, {
+  SseServerTransportOptions? options,
   String? logFilePath,
   Logger? logger,
 }) {
   // Combine provided options with defaults
-  final effectiveOptions = options ?? SseServerOptions();
+  final effectiveOptions = options ?? SseServerTransportOptions();
 
-  return SseServer(
-    handler,
+  return SseServerTransport(
+    server,
     host: effectiveOptions.host,
     port: effectiveOptions.port,
     maxIdleTime: effectiveOptions.maxIdleTime,

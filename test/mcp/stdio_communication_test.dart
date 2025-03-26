@@ -9,8 +9,8 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:straw_mcp/src/mcp/contents.dart';
 import 'package:straw_mcp/src/mcp/tools.dart';
-import 'package:straw_mcp/src/server/protocol_handler.dart';
-import 'package:straw_mcp/src/server/stream_server.dart';
+import 'package:straw_mcp/src/server/server.dart';
+import 'package:straw_mcp/src/server/stream_server_transport.dart';
 import 'package:straw_mcp/src/shared/stdio_buffer.dart';
 import 'package:test/test.dart';
 
@@ -178,7 +178,7 @@ void main() {
       // This test uses file-based communication
 
       final logPath = path.join(tempDir.path, 'server.log');
-      final handler = ProtocolHandler('test-server', '1.0.0')
+      final server = Server('test-server', '1.0.0')
         // Register a tool for testing
         ..addTool(
           Tool(
@@ -202,7 +202,7 @@ void main() {
         );
 
       // Set server options
-      final serverOptions = StreamServerOptions.stdio(
+      final serverOptions = StreamServerTransportOptions.stdio(
         logger: setupLogger('MCP-Server'),
         logFilePath: logPath,
       );
@@ -228,7 +228,7 @@ void main() {
         });
         
         // サーバーの作成
-        final handler = ProtocolHandler('test-server', '1.0.0');
+        final server = Server('test-server', '1.0.0');
         
         // テスト用のツールを登録
         server.addTool(
@@ -252,8 +252,8 @@ void main() {
           },
         );
         
-        // StreamServerOptionsの設定
-        final options = StreamServerOptions(
+        // StreamServerTransportOptionsの設定
+        final options = StreamServerTransportOptions(
           logger: logger,
           logFilePath: '${path.join(tempDir.path, 'test_server.log')}',
         );

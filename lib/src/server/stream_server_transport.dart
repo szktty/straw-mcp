@@ -14,16 +14,16 @@ import 'package:path/path.dart' show dirname;
 import 'package:straw_mcp/src/json_rpc/codec.dart';
 import 'package:straw_mcp/src/json_rpc/message.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
-import 'package:straw_mcp/src/server/protocol_handler.dart';
+import 'package:straw_mcp/src/server/server.dart';
 import 'package:straw_mcp/src/shared/stdio_buffer.dart';
 import 'package:synchronized/synchronized.dart';
 
 /// A function that can be used to customize context for stream server.
-typedef StreamServerContextFunction =
+typedef StreamServerTransportContextFunction =
     void Function(NotificationContext context);
 
 /// Configuration options for stream server.
-class StreamServerOptions {
+class StreamServerTransportOptions {
   /// Creates a new set of stream server options.
   ///
   /// - [logger]: Optional logger for error messages
@@ -31,7 +31,7 @@ class StreamServerOptions {
   /// - [logFilePath]: Optional path to a log file for recording server events
   /// - [inputStream]: Input stream for receiving messages
   /// - [outputSink]: Output sink for sending responses
-  StreamServerOptions({
+  StreamServerTransportOptions({
     required this.inputStream,
     required this.outputSink,
     this.logger,
@@ -44,12 +44,12 @@ class StreamServerOptions {
   /// - [logger]: Optional logger for error messages
   /// - [contextFunction]: Optional function to customize client context
   /// - [logFilePath]: Optional path to a log file for recording server events
-  factory StreamServerOptions.stdio({
+  factory StreamServerTransportOptions.stdio({
     Logger? logger,
-    StreamServerContextFunction? contextFunction,
+    StreamServerTransportContextFunction? contextFunction,
     String? logFilePath,
   }) {
-    return StreamServerOptions(
+    return StreamServerTransportOptions(
       inputStream: stdin.asBroadcastStream(),
       outputSink: stdout,
       logger: logger,
@@ -68,24 +68,26 @@ class StreamServerOptions {
   final Logger? logger;
 
   /// Function to customize client context.
-  final StreamServerContextFunction? contextFunction;
+  final StreamServerTransportContextFunction? contextFunction;
 
   /// Path to log file (optional)
   final String? logFilePath;
 }
 
 /// MCP server implementation that communicates via input/output streams.
-class StreamServer {
+class StreamServerTransport {
   /// Creates a new stream-based MCP server.
   ///
-  /// - [handler]: The MCP protocol handler to wrap
+  /// - [server]: The MCP server to wrap
   /// - [options]: Optional configuration options for the server
-  StreamServer(this.handler, {required StreamServerOptions options})
-    : logger = options.logger,
-      contextFunction = options.contextFunction,
-      logFilePath = options.logFilePath,
-      inputStream = options.inputStream,
-      outputSink = options.outputSink {
+  StreamServerTransport(
+    this.server, {
+    required StreamServerTransportOptions options,
+  }) : logger = options.logger,
+       contextFunction = options.contextFunction,
+       logFilePath = options.logFilePath,
+       inputStream = options.inputStream,
+       outputSink = options.outputSink {
     // Open log file if path is specified
     if (logFilePath != null) {
       try {
@@ -112,15 +114,15 @@ class StreamServer {
   /// - [logger]: Optional logger for error messages
   /// - [contextFunction]: Optional function to customize client context
   /// - [logFilePath]: Optional path to a log file for recording server events
-  factory StreamServer.stdio(
-    ProtocolHandler handler, {
+  factory StreamServerTransport.stdio(
+    Server server, {
     Logger? logger,
-    StreamServerContextFunction? contextFunction,
+    StreamServerTransportContextFunction? contextFunction,
     String? logFilePath,
   }) {
-    return StreamServer(
-      handler,
-      options: StreamServerOptions.stdio(
+    return StreamServerTransport(
+      server,
+      options: StreamServerTransportOptions.stdio(
         logger: logger,
         contextFunction: contextFunction,
         logFilePath: logFilePath,
@@ -129,13 +131,13 @@ class StreamServer {
   }
 
   /// The wrapped MCP server.
-  final ProtocolHandler handler;
+  final Server server;
 
   /// Logger for error messages.
   final Logger? logger;
 
   /// Function to customize client context.
-  final StreamServerContextFunction? contextFunction;
+  final StreamServerTransportContextFunction? contextFunction;
 
   /// Path to log file.
   final String? logFilePath;
@@ -194,11 +196,11 @@ class StreamServer {
     // Set up client context
     final context = _defaultContext;
     contextFunction?.call(context);
-    handler.setCurrentClient(context);
+    server.setCurrentClient(context);
     _log('Client context set up');
 
     // Handle notifications from server
-    _notificationSubscription = handler.notifications.listen((notification) {
+    _notificationSubscription = server.notifications.listen((notification) {
       // Only handle notifications for this client
       if (notification.context.clientId == _defaultContext.clientId) {
         try {
@@ -284,7 +286,7 @@ class StreamServer {
         _log(
           'Handling message: ${jsonMap.containsKey("method") ? jsonMap["method"] : "(response/notification)"} ${jsonMap.containsKey("id") ? "(ID: ${jsonMap["id"]})" : ""}',
         );
-        response = await handler.handleMessage(messageJson);
+        response = await server.handleMessage(messageJson);
         _logDebug(
           'Server processed message${response != null ? " and returned a response" : " (no response needed)"}',
         );
@@ -446,12 +448,12 @@ class StreamServer {
 /// standard output. It handles signals and stdin closure for graceful
 /// shutdown and ensures proper resource cleanup.
 Future<void> serveStdio(
-  ProtocolHandler handler, {
-  StreamServerOptions? options,
+  Server server, {
+  StreamServerTransportOptions? options,
 }) async {
   final log = options?.logger ?? Logger('StreamServer');
-  final streamServer = StreamServer.stdio(
-    handler,
+  final streamServer = StreamServerTransport.stdio(
+    server,
     logger: log,
     contextFunction: options?.contextFunction,
     logFilePath: options?.logFilePath,
@@ -468,7 +470,7 @@ Future<void> serveStdio(
     onDone: () async {
       log.info('stdin stream closed, shutting down');
       try {
-        await handler.close();
+        await server.close();
         await streamServer.close();
 
         if (!shutdownCompleter.isCompleted) {
@@ -496,7 +498,7 @@ Future<void> serveStdio(
   sigintSubscription = ProcessSignal.sigint.watch().listen((_) async {
     log.info('Received SIGINT, shutting down');
     try {
-      await handler.close();
+      await server.close();
       await streamServer.close();
       await sigintSubscription?.cancel();
       await sigtermSubscription?.cancel();
@@ -510,7 +512,7 @@ Future<void> serveStdio(
   sigtermSubscription = ProcessSignal.sigterm.watch().listen((_) async {
     log.info('Received SIGTERM, shutting down');
     try {
-      await handler.close();
+      await server.close();
       await streamServer.close();
       await sigintSubscription?.cancel();
       await sigtermSubscription?.cancel();
@@ -522,7 +524,7 @@ Future<void> serveStdio(
   });
 
   // サーバーの状態を監視
-  handler.closeState.listen((isClosed) {
+  server.closeState.listen((isClosed) {
     if (isClosed && !shutdownCompleter.isCompleted) {
       log.info('Server requested shutdown');
       shutdownCompleter.complete();

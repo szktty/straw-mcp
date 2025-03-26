@@ -98,12 +98,12 @@ export 'src/mcp/utils.dart'
         numberToolResult,
         textResourceContents,
         textToolResult;
-export 'src/server/protocol_handler.dart'
+export 'src/server/server.dart'
     show
         PromptHandlerFunction,
-        ProtocolHandler,
         ResourceHandlerFunction,
         ResourceTemplateHandlerFunction,
+        Server,
         ServerOption,
         ServerTool,
         ToolHandlerFunction,
@@ -112,10 +112,11 @@ export 'src/server/protocol_handler.dart'
         withPromptCapabilities,
         withResourceCapabilities,
         withToolCapabilities;
-export 'src/server/sse_server.dart' show SseServer, SseServerOptions, serveSse;
-export 'src/server/stream_server.dart'
+export 'src/server/sse_server_transport.dart'
+    show SseServerTransport, SseServerTransportOptions, serveSse;
+export 'src/server/stream_server_transport.dart'
     show
-        StreamServer,
-        StreamServerContextFunction,
-        StreamServerOptions,
+        StreamServerTransport,
+        StreamServerTransportContextFunction,
+        StreamServerTransportOptions,
         serveStdio;
