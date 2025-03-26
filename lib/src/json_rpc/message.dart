@@ -18,11 +18,10 @@ JsonRpcNotification createNotification(
   String method,
   Map<String, dynamic> params,
 ) {
-  final notificationParams = NotificationParams(additionalFields: params);
-
   return JsonRpcNotification(
-    jsonRpcVersion,
-    Notification(method, notificationParams),
+    version: jsonRpcVersion,
+    method: method,
+    params: params,
   );
 }
 

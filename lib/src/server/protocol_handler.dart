@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 
 import 'package:straw_mcp/src/json_rpc/message.dart';
+import 'package:straw_mcp/src/mcp/logging.dart';
 import 'package:straw_mcp/src/mcp/prompts.dart';
 import 'package:straw_mcp/src/mcp/resources.dart';
 import 'package:straw_mcp/src/mcp/tools.dart';
@@ -635,7 +636,7 @@ class ProtocolHandler {
 
   // Notification handling
   void _handleNotification(JsonRpcNotification notification) {
-    final method = notification.notification.method;
+    final method = notification.method;
 
     NotificationHandlerFunction? handler;
     _lock.synchronized(() {
@@ -712,7 +713,7 @@ class ProtocolHandler {
     });
 
     if (shouldNotify) {
-      sendNotificationToClient('notifications/tools/list_changed', {});
+      sendNotification(ToolListChangedNotification());
     }
   }
 
@@ -731,7 +732,7 @@ class ProtocolHandler {
     });
 
     if (shouldNotify) {
-      sendNotificationToClient('notifications/tools/list_changed', {});
+      sendNotification(ToolListChangedNotification());
     }
   }
 
@@ -748,7 +749,7 @@ class ProtocolHandler {
     });
 
     if (shouldNotify) {
-      sendNotificationToClient('notifications/tools/list_changed', {});
+      sendNotification(ToolListChangedNotification());
     }
   }
 
@@ -760,20 +761,6 @@ class ProtocolHandler {
     _lock.synchronized(() {
       _notificationHandlers[method] = handler;
     });
-  }
-
-  /// Sends a notification to the current client.
-  void sendNotificationToClient(String method, Map<String, dynamic> params) {
-    if (_currentClient == null) {
-      return;
-    }
-
-    final notification = JsonRpcNotification(
-      jsonRpcVersion,
-      Notification(method, NotificationParams(additionalFields: params)),
-    );
-
-    _notifications.add(ServerNotification(_currentClient!, notification));
   }
 
   /// Sets the current client context.
@@ -799,17 +786,52 @@ class ProtocolHandler {
     logger?.severe(message);
   }
 
-  /// サーバーが閉じられたかどうかのフラグ
+  /// Sends a log message notification to the client.
+  ///
+  /// This method can be used to send log messages to the client when the server
+  /// has logging capabilities enabled. The client must have registered for these
+  /// notifications or set a logging level via setLevel request.
+  ///
+  /// - [notification]: The log message notification to send
+  void sendLoggingNotification(LoggingMessageNotification notification) {
+    if (!capabilities.logging) {
+      return; // Logging not supported/enabled
+    }
+    sendNotification(notification);
+  }
+
+  /// Sends a notification to the client.
+  ///
+  /// This is a general-purpose method to send any type of notification to the client.
+  /// Use this method when you need to send custom notifications that are not
+  /// covered by specific methods like [sendLoggingNotification].
+  ///
+  /// - [notification]: The notification to send
+  void sendNotification(Notification notification) {
+    final jsonNotification = JsonRpcNotification(
+      version: jsonRpcVersion,
+      method: notification.method,
+      params: notification.params,
+    );
+
+    if (_currentClient == null) {
+      return;
+    }
+
+    _notifications.add(ServerNotification(_currentClient!, jsonNotification));
+  }
+
+  /// Flag indicating whether the server is closed
   bool _isClosed = false;
 
-  /// サーバーの閉じ方の状態
+  /// State of the server closure
   final StreamController<bool> _closeStateController =
       StreamController<bool>.broadcast();
 
-  /// サーバーの閉じ方の状態を通知するストリーム
+  /// Stream notifying the state of the server closure
   Stream<bool> get closeState => _closeStateController.stream;
 
-  /// サーバーが閉じているかどうか
+  /// Whether the server is closed
   bool get isClosed => _isClosed;
 
   /// サーバーを閉じて、リソースを解放します。

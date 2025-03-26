@@ -49,7 +49,7 @@ void main() async {
 
     // Setup notification handler
     client.onNotification((notification) {
-      print('\nReceived notification: ${notification.notification.method}');
+      print('\nReceived notification: ${notification.method}');
     });
 
     // List resources

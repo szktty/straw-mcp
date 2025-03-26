@@ -40,8 +40,11 @@ class ListToolsResult extends PaginatedResult {
 
 /// Request for calling a tool.
 class CallToolRequest extends Request {
-  CallToolRequest({required String name, Map<String, dynamic>? arguments})
-    : super('tools/call', {'name': name, 'arguments': arguments ?? {}});
+  CallToolRequest({required this.name, required this.arguments})
+    : super('tools/call', {'name': name, 'arguments': arguments});
+
+  final String name;
+  final Map<String, dynamic> arguments;
 }
 
 // Content classes are now imported from 'contents.dart'
@@ -113,7 +116,7 @@ CallToolResult newToolResultError(String errorMessage) {
 /// Notification indicating that the tool list has changed.
 class ToolListChangedNotification extends Notification {
   ToolListChangedNotification()
-    : super('notifications/tools/list_changed', NotificationParams());
+    : super('notifications/tools/list_changed', null);
 }
 
 /// Represents a tool parameter.
@@ -200,16 +203,22 @@ class Tool extends Annotated {
   ///
   /// - [name]: The name of the tool
   /// - [description]: Optional description of the tool
-  /// - [parameters]: Optional list of parameters the tool accepts
+  /// - [inputSchema]: Optional list of parameters the tool accepts
   /// - [audience]: Optional audience annotation
   /// - [priority]: Optional priority annotation
   Tool({
     required this.name,
     this.description,
-    List<ToolParameter>? parameters,
+    List<ToolParameter>? inputSchema,
     super.audience,
     super.priority,
-  }) : parameters = parameters ?? [];
+  }) : inputSchema = inputSchema ?? [] {
+    if (!RegExp(r'^[a-zA-Z0-9_-]{1,64}$').hasMatch(name)) {
+      throw ArgumentError(
+        "Tool name must match pattern '^[a-zA-Z0-9_-]{1,64}\$'. Got: $name",
+      );
+    }
+  }
 
   /// Creates a tool from a JSON map.
   factory Tool.fromJson(Map<String, dynamic> json) {
@@ -248,7 +257,7 @@ class Tool extends Annotated {
     return Tool(
       name: json['name'] as String,
       description: json['description'] as String?,
-      parameters: params,
+      inputSchema: params,
       audience: annotated.audience,
       priority: annotated.priority,
     );
@@ -261,7 +270,7 @@ class Tool extends Annotated {
   String? description;
 
   /// The list of parameters that the tool accepts.
-  List<ToolParameter> parameters;
+  List<ToolParameter> inputSchema;
 
   /// Converts the tool to a JSON map.
   Map<String, dynamic> toJson() {
@@ -275,7 +284,7 @@ class Tool extends Annotated {
     final properties = <String, dynamic>{};
     final required = <String>[];
 
-    for (final param in parameters) {
+    for (final param in inputSchema) {
       final propertySchema = <String, dynamic>{'type': param.type};
 
       if (param.description != null) {
@@ -353,7 +362,7 @@ ToolOption withString(
       option(param);
     }
 
-    tool.parameters.add(param);
+    tool.inputSchema.add(param);
   };
 }
 
@@ -369,7 +378,7 @@ ToolOption withNumber(
       option(param);
     }
 
-    tool.parameters.add(param);
+    tool.inputSchema.add(param);
   };
 }
 
@@ -385,7 +394,39 @@ ToolOption withBoolean(
       option(param);
     }
 
-    tool.parameters.add(param);
+    tool.inputSchema.add(param);
+  };
+}
+
+/// Adds a list parameter to a tool.
+ToolOption withArray(
+  String name, [
+  List<ToolParameterOption> options = const [],
+]) {
+  return (Tool tool) {
+    final param = ToolParameter(name: name, type: 'array');
+
+    for (final option in options) {
+      option(param);
+    }
+
+    tool.inputSchema.add(param);
+  };
+}
+
+/// Adds a map parameter to a tool.
+ToolOption withObject(
+  String name, [
+  List<ToolParameterOption> options = const [],
+]) {
+  return (Tool tool) {
+    final param = ToolParameter(name: name, type: 'object');
+
+    for (final option in options) {
+      option(param);
+    }
+
+    tool.inputSchema.add(param);
   };
 }
 

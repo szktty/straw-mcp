@@ -45,45 +45,7 @@ class Notification {
   Notification(this.method, this.params);
 
   final String method;
-  final NotificationParams params;
-}
-
-/// Parameters for MCP notifications.
-class NotificationParams {
-  NotificationParams({this.meta, Map<String, dynamic>? additionalFields})
-    : additionalFields = additionalFields ?? {};
-
-  /// Creates a NotificationParams instance from JSON.
-  factory NotificationParams.fromJson(Map<String, dynamic> json) {
-    final params = NotificationParams();
-
-    json.forEach((key, value) {
-      if (key == '_meta' && value is Map<String, dynamic>) {
-        params.meta = value;
-      } else {
-        params.additionalFields[key] = value;
-      }
-    });
-
-    return params;
-  }
-
-  Map<String, dynamic>? meta;
-  Map<String, dynamic> additionalFields;
-
-  /// Converts the notification parameters to JSON.
-  Map<String, dynamic> toJson() {
-    final result = <String, dynamic>{};
-    if (meta != null) {
-      result['_meta'] = meta;
-    }
-    additionalFields.forEach((key, value) {
-      if (key != '_meta') {
-        result[key] = value;
-      }
-    });
-    return result;
-  }
+  final dynamic params;
 }
 
 /// Base class for all MCP results.
@@ -139,29 +101,33 @@ class JsonRpcRequest implements JsonRpcMessage {
 
 /// Represents a JSON-RPC notification.
 class JsonRpcNotification implements JsonRpcMessage {
-  JsonRpcNotification(this.jsonrpc, this.notification);
+  JsonRpcNotification({
+    required this.version,
+    required this.method,
+    this.params,
+  });
 
   /// Creates a JSON-RPC notification from a JSON map.
   factory JsonRpcNotification.fromJson(Map<String, dynamic> json) {
-    final notif = Notification(
-      json['method'] as String,
-      NotificationParams.fromJson(
-        json['params'] as Map<String, dynamic>? ?? {},
-      ),
+    final method = json['method'] as String;
+    final params = json['params'] as Map<String, dynamic>? ?? {};
+    return JsonRpcNotification(
+      version: json['jsonrpc'] as String,
+      method: method,
+      params: params,
     );
-
-    return JsonRpcNotification(json['jsonrpc'] as String, notif);
   }
 
-  final String jsonrpc;
-  final Notification notification;
+  final String version;
+  final String method;
+  final dynamic params;
 
   /// Converts the notification to a JSON map.
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
-      'jsonrpc': jsonrpc,
-      'method': notification.method,
-      'params': notification.params.toJson(),
+      'jsonrpc': version,
+      'method': method,
+      'params': params,
     };
   }
 }
@@ -248,15 +214,10 @@ class EmptyResult extends Result {}
 /// Notification for cancelling a previous request.
 class CancelledNotification extends Notification {
   CancelledNotification(RequestId requestId, {String? reason})
-    : super(
-        'cancelled',
-        NotificationParams(
-          additionalFields: {
-            'requestId': requestId,
-            if (reason != null) 'reason': reason,
-          },
-        ),
-      );
+    : super('cancelled', {
+        'requestId': requestId,
+        if (reason != null) 'reason': reason,
+      });
 }
 
 /// Client capabilities for the MCP protocol.
@@ -521,7 +482,7 @@ class InitializeResult extends Result {
 
 /// Notification sent after initialization is complete.
 class InitializedNotification extends Notification {
-  InitializedNotification() : super('initialized', NotificationParams());
+  InitializedNotification() : super('initialized', null);
 }
 
 /// Request for pinging the server.
@@ -535,16 +496,11 @@ class ProgressNotification extends Notification {
     required ProgressToken progressToken,
     required double progress,
     double? total,
-  }) : super(
-         'progress',
-         NotificationParams(
-           additionalFields: {
-             'progressToken': progressToken,
-             'progress': progress,
-             if (total != null) 'total': total,
-           },
-         ),
-       );
+  }) : super('progress', {
+         'progressToken': progressToken,
+         'progress': progress,
+         if (total != null) 'total': total,
+       });
 }
 
 /// Base class for paginated requests.

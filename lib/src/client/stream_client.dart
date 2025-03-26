@@ -242,16 +242,9 @@ class StreamClient implements Client {
           // Send cancel notifications for all pending requests
           for (final id in List<dynamic>.from(_responseCompleters.keys)) {
             final cancelNotification = JsonRpcNotification(
-              jsonRpcVersion,
-              Notification(
-                'notifications/cancelled',
-                NotificationParams(
-                  additionalFields: {
-                    'requestId': id,
-                    'reason': 'Client closing',
-                  },
-                ),
-              ),
+              version: jsonRpcVersion,
+              method: 'notifications/cancelled',
+              params: {'requestId': id, 'reason': 'Client closing'},
             );
             try {
               final jsonMap = _codec.encodeNotification(cancelNotification);

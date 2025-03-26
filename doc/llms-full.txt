@@ -218,7 +218,7 @@ for (final tool in toolsResult.tools) {
   print('  Description: ${tool.description}');
   
   // Tool parameter information
-  for (final param in tool.parameters) {
+  for (final param in tool.inputSchema) {
     print('  Parameter: ${param.name} (${param.type})');
     print('    Required: ${param.required}');
     print('    Description: ${param.description}');
@@ -388,8 +388,8 @@ To process notifications from the server (tool list changes, resource updates, e
 ```dart
 // Register a notification handler
 client.onNotification((notification) {
-  final method = notification.notification.method;
-  final params = notification.notification.params;
+  final method = notification.method;
+  final params = notification.params;
   
   switch (method) {
     case 'notifications/resources/updated':
@@ -565,7 +565,7 @@ Future<void> main() async {
     
     // Set up notification handler
     client.onNotification((notification) {
-      final method = notification.notification.method;
+      final method = notification.method;
       logger.info('Notification received: $method');
       
       // Notification processing...
@@ -721,6 +721,13 @@ server.addTool(
   },
 );
 ```
+
+### Tool Name
+
+The tool name can only contain alphanumeric characters (both uppercase and lowercase), underscores, and hyphens. The length of the name must be between 1 and 64 characters.
+
+If the tool name is invalid, an exception will be thrown.
+
 
 ### Tool Options and Parameters
 
@@ -1013,17 +1020,17 @@ Log notifications from server to client:
 
 ```dart
 // Send notifications according to log level
-server.loggingNotification(LoggingMessageNotification(
+server.sendLoggingNotification(LoggingMessageNotification(
   level: LoggingLevel.info,
   data: 'Server started successfully',
 ));
 
-server.loggingNotification(LoggingMessageNotification(
+server.sendLoggingNotification(LoggingMessageNotification(
   level: LoggingLevel.warning,
   data: 'Warning: Server resources are running low',
 ));
 
-server.loggingNotification(LoggingMessageNotification(
+server.sendLoggingNotification(LoggingMessageNotification(
   level: LoggingLevel.error,
   data: 'Error: Failed to connect to database',
 ));
@@ -1188,7 +1195,7 @@ Represents a tool provided by the server.
 class Tool extends Annotated {
   String name;                       // Tool name
   String? description;               // Tool description
-  List<ToolParameter> parameters;    // Tool parameters
+  List<ToolParameter> inputSchema;   // Tool parameters
 }
 
 class ToolParameter extends Annotated {
@@ -1531,6 +1538,8 @@ ToolOption withDescription(String description);
 ToolOption withString(String name, [List<ToolParameterOption> options = const []]);
 ToolOption withNumber(String name, [List<ToolParameterOption> options = const []]);
 ToolOption withBoolean(String name, [List<ToolParameterOption> options = const []]);
+ToolOption withArray(String name, [List<ToolParameterOption> options = const []]);
+ToolOption withObject(String name, [List<ToolParameterOption> options = const []]);
 ToolParameterOption required();
 ToolParameterOption description(String desc);
 ToolParameterOption enumValues(List<String> values);

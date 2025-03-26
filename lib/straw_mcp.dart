@@ -4,6 +4,7 @@ export 'src/client/client.dart'
         CompleteRequest,
         CompleteResult,
         CompletionValues,
+        LoggingLevel,
         McpError,
         SetLevelRequest;
 export 'src/client/sse/sse_client.dart' show SseClient;
@@ -11,6 +12,7 @@ export 'src/client/sse/sse_client_transport.dart' show SseClientOptions;
 export 'src/client/stream_client.dart' show StreamClient, StreamClientOptions;
 export 'src/mcp/contents.dart'
     show Content, EmbeddedResource, ImageContent, TextContent;
+export 'src/mcp/logging.dart' show LoggingMessageNotification;
 export 'src/mcp/prompts.dart'
     show
         GetPromptRequest,
@@ -58,9 +60,11 @@ export 'src/mcp/tools.dart'
         newToolResultError,
         newToolResultText,
         required,
+        withArray,
         withBoolean,
         withDescription,
         withNumber,
+        withObject,
         withString;
 export 'src/mcp/types.dart'
     show
@@ -73,7 +77,6 @@ export 'src/mcp/types.dart'
         JsonRpcMessage,
         JsonRpcNotification,
         Notification,
-        NotificationParams,
         PingRequest,
         ProgressNotification,
         ProgressToken,
