@@ -99,7 +99,7 @@ void main() async {
     if (responseLogFile != null) {
       try {
         final timestamp = DateTime.now().toIso8601String();
-        final method = notification.notification.notification.method;
+        final method = notification.method;
         responseLogFile.writeln('$timestamp NOTIFICATION: $method');
       } catch (e) {
         logger.warning('Failed to log notification: $e');
