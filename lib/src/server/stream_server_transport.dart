@@ -29,11 +29,11 @@ class StreamServerTransportOptions {
   /// - [logger]: Optional logger for error messages
   /// - [contextFunction]: Optional function to customize client context
   /// - [logFilePath]: Optional path to a log file for recording server events
-  /// - [inputStream]: Input stream for receiving messages
-  /// - [outputSink]: Output sink for sending responses
+  /// - [stream]: Input stream for receiving messages
+  /// - [sink]: Output sink for sending responses
   StreamServerTransportOptions({
-    required this.inputStream,
-    required this.outputSink,
+    required this.stream,
+    required this.sink,
     this.logger,
     this.contextFunction,
     this.logFilePath,
@@ -50,8 +50,8 @@ class StreamServerTransportOptions {
     String? logFilePath,
   }) {
     return StreamServerTransportOptions(
-      inputStream: stdin.asBroadcastStream(),
-      outputSink: stdout,
+      stream: stdin.asBroadcastStream(),
+      sink: stdout,
       logger: logger,
       contextFunction: contextFunction,
       logFilePath: logFilePath,
@@ -59,10 +59,10 @@ class StreamServerTransportOptions {
   }
 
   /// Input stream for receiving messages.
-  final Stream<List<int>> inputStream;
+  final Stream<List<int>> stream;
 
   /// Output sink for sending responses.
-  final IOSink outputSink;
+  final IOSink sink;
 
   /// Logger for error messages.
   final Logger? logger;
@@ -86,8 +86,8 @@ class StreamServerTransport {
   }) : logger = options.logger,
        contextFunction = options.contextFunction,
        logFilePath = options.logFilePath,
-       inputStream = options.inputStream,
-       outputSink = options.outputSink {
+       stream = options.stream,
+       sink = options.sink {
     // Open log file if path is specified
     if (logFilePath != null) {
       try {
@@ -143,10 +143,10 @@ class StreamServerTransport {
   final String? logFilePath;
 
   /// Input stream for receiving messages.
-  final Stream<List<int>> inputStream;
+  final Stream<List<int>> stream;
 
   /// Output sink for sending responses.
-  final IOSink outputSink;
+  final IOSink sink;
 
   /// File for logging if logFilePath is specified.
   IOSink? _logFile;
@@ -207,7 +207,7 @@ class StreamServerTransport {
           _logDebug(
             'Sending notification: ${notification.notification.method}',
           );
-          _writeResponse(notification.notification, outputSink);
+          _writeResponse(notification.notification, sink);
         } on Exception catch (e) {
           _logError('Error writing notification response: $e');
         }
@@ -216,7 +216,7 @@ class StreamServerTransport {
     _log('Notification listener set up');
 
     // データ受信処理を設定
-    _inputSubscription = inputStream.listen(
+    _inputSubscription = stream.listen(
       _onData,
       onError: (Object error) {
         _logError('Error reading from input stream: $error');
@@ -261,7 +261,7 @@ class StreamServerTransport {
               internalError,
               'Internal error: $e',
             );
-            await _writeResponse(errorResponse, outputSink);
+            await _writeResponse(errorResponse, sink);
           } on Exception catch (respError) {
             _logError('Failed to send error response: $respError');
           }
@@ -298,7 +298,7 @@ class StreamServerTransport {
           internalError,
           'Server error: $handleError',
         );
-        await _writeResponse(errorResponse, outputSink);
+        await _writeResponse(errorResponse, sink);
         return;
       }
 
@@ -306,7 +306,7 @@ class StreamServerTransport {
       if (response != null) {
         try {
           _log('Sending response for ID: ${jsonMap["id"]}');
-          await _writeResponse(response, outputSink);
+          await _writeResponse(response, sink);
         } on Exception catch (writeError) {
           _logError('Error writing response: $writeError');
         }
@@ -320,7 +320,7 @@ class StreamServerTransport {
           internalError,
           'Unexpected error: $e',
         );
-        await _writeResponse(errorResponse, outputSink);
+        await _writeResponse(errorResponse, sink);
       } on Exception catch (respError) {
         _logError('Failed to send error response: $respError');
       }
@@ -463,7 +463,7 @@ Future<void> serveStdio(
   final shutdownCompleter = Completer<void>();
 
   // stdinのクローズを検出するためのリスナー
-  final stdinSubscription = streamServer.inputStream.listen(
+  final stdinSubscription = streamServer.stream.listen(
     (_) {
       // データ処理はStreamServerに任せる
     },

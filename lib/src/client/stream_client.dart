@@ -23,20 +23,16 @@ class StreamClientOptions {
   /// Creates a new set of stream client options.
   ///
   /// - [logger]: Optional logger for error messages
-  /// - [inputStream]: Optional input stream to read from
-  /// - [outputSink]: Optional output sink to write to
-  StreamClientOptions({
-    required this.inputStream,
-    required this.outputSink,
-    this.logger,
-  });
+  /// - [stream]: Optional input stream to read from
+  /// - [sink]: Optional output sink to write to
+  StreamClientOptions({required this.stream, required this.sink, this.logger});
 
   /// Creates a new options using standard input/output streams.
   factory StreamClientOptions.stdio({Logger? logger}) {
     return StreamClientOptions(
       logger: logger,
-      inputStream: stdin.asBroadcastStream(),
-      outputSink: stdout,
+      stream: stdin.asBroadcastStream(),
+      sink: stdout,
     );
   }
 
@@ -44,10 +40,10 @@ class StreamClientOptions {
   final Logger? logger;
 
   /// Input stream to read from (defaults to stdin).
-  final Stream<List<int>> inputStream;
+  final Stream<List<int>> stream;
 
   /// Output sink to write to (defaults to stdout).
-  final IOSink outputSink;
+  final IOSink sink;
 }
 
 /// MCP client implementation that communicates via input/output streams.
@@ -57,8 +53,8 @@ class StreamClient implements Client {
   /// - [options]: Optional configuration options for the client
   StreamClient({required StreamClientOptions options})
     : logger = options.logger,
-      _inputStream = options.inputStream,
-      _outputSink = options.outputSink;
+      _stream = options.stream,
+      _sink = options.sink;
 
   /// Creates a new client using standard input/output streams.
   ///
@@ -76,12 +72,12 @@ class StreamClient implements Client {
   /// Input stream to read from.
   ///
   /// Defaults to stdin if not provided in options.
-  final Stream<List<int>> _inputStream;
+  final Stream<List<int>> _stream;
 
   /// Output sink to write to.
   ///
   /// Defaults to stdout if not provided in options.
-  final IOSink _outputSink;
+  final IOSink _sink;
 
   /// JSON-RPC codec for message encoding/decoding.
   ///
@@ -118,7 +114,7 @@ class StreamClient implements Client {
     _isConnected = true;
 
     // Set up line-based stdin reader
-    final lineReader = _inputStream
+    final lineReader = _stream
         .transform(utf8.decoder)
         .transform(const LineSplitter());
 
@@ -200,7 +196,7 @@ class StreamClient implements Client {
   void _writeRequest(JsonRpcRequest request) {
     try {
       final jsonMap = _codec.encodeRequest(request);
-      _outputSink.writeln(json.encode(jsonMap));
+      _sink.writeln(json.encode(jsonMap));
     } catch (e) {
       _logError('Error writing request: $e');
 
@@ -248,7 +244,7 @@ class StreamClient implements Client {
             );
             try {
               final jsonMap = _codec.encodeNotification(cancelNotification);
-              _outputSink.writeln(json.encode(jsonMap));
+              _sink.writeln(json.encode(jsonMap));
             } catch (e) {
               _logError('Error sending cancel notification: $e');
             }

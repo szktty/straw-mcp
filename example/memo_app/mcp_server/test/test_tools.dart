@@ -268,8 +268,8 @@ class DebugClient {
     // Create client
     _mcpClient = StreamClient(
       options: StreamClientOptions(
-        outputSink: IOSink(_mcpProcess!.stdin),
-        inputStream: stdoutController.stream,
+        sink: IOSink(_mcpProcess!.stdin),
+        stream: stdoutController.stream,
       ),
     );
 
