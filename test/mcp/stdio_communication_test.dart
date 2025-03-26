@@ -184,7 +184,7 @@ void main() {
           Tool(
             name: 'echo',
             description: 'Echo back the input',
-            parameters: [
+            inputSchema: [
               ToolParameter(
                 name: 'message',
                 type: 'string',

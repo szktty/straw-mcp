@@ -11,7 +11,7 @@ void main() {
       final tool = Tool(
         name: 'calculator',
         description: 'Calculator function',
-        parameters: [
+        inputSchema: [
           ToolParameter(name: 'a', type: 'number', required: true),
           ToolParameter(name: 'b', type: 'number', required: true),
           ToolParameter(name: 'operation', type: 'string', required: true),
@@ -65,13 +65,13 @@ void main() {
 
       expect(tool.name, equals('searcher'));
       expect(tool.description, equals('Search function'));
-      expect(tool.parameters.length, equals(3));
+      expect(tool.inputSchema.length, equals(3));
 
-      final queryParam = tool.parameters.firstWhere((p) => p.name == 'query');
+      final queryParam = tool.inputSchema.firstWhere((p) => p.name == 'query');
       expect(queryParam.type, equals('string'));
       expect(queryParam.required, isTrue);
 
-      final limitParam = tool.parameters.firstWhere((p) => p.name == 'limit');
+      final limitParam = tool.inputSchema.firstWhere((p) => p.name == 'limit');
       expect(limitParam.type, equals('number'));
       expect(limitParam.defaultValue, equals(10));
 
@@ -90,7 +90,7 @@ void main() {
       final originalTool = Tool(
         name: 'translator',
         description: 'Translation function',
-        parameters: [
+        inputSchema: [
           ToolParameter(
             name: 'text',
             type: 'string',
@@ -118,17 +118,17 @@ void main() {
       expect(restoredTool.name, equals(originalTool.name));
       expect(restoredTool.description, equals(originalTool.description));
       expect(
-        restoredTool.parameters.length,
-        equals(originalTool.parameters.length),
+        restoredTool.inputSchema.length,
+        equals(originalTool.inputSchema.length),
       );
 
-      final textParam = restoredTool.parameters.firstWhere(
+      final textParam = restoredTool.inputSchema.firstWhere(
         (p) => p.name == 'text',
       );
       expect(textParam.type, equals('string'));
       expect(textParam.required, isTrue);
 
-      final sourceParam = restoredTool.parameters.firstWhere(
+      final sourceParam = restoredTool.inputSchema.firstWhere(
         (p) => p.name == 'source',
       );
       expect(sourceParam.required, isFalse);
