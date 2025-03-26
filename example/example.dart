@@ -113,15 +113,15 @@ Future<void> runBoth() async {
 /// Creates and returns an MCP server with echo functionality.
 Server createEchoServer() {
   return Server('MCP Echo Server', '1.0.0', [
-    withToolCapabilities(listChanged: true),
-    withResourceCapabilities(subscribe: false, listChanged: true),
-    withPromptCapabilities(listChanged: true),
-    withLogging(),
-    withInstructions(
-      'This is a simple MCP echo server that demonstrates basic functionality.',
-    ),
-  ])
-  // Add a simple echo tool
+      withToolCapabilities(listChanged: true),
+      withResourceCapabilities(subscribe: false, listChanged: true),
+      withPromptCapabilities(listChanged: true),
+      withLogging(),
+      withInstructions(
+        'This is a simple MCP echo server that demonstrates basic functionality.',
+      ),
+    ])
+    // Add a simple echo tool
     ..addTool(
       newTool('echo', [
         withDescription('Echoes back a message.'),
@@ -130,7 +130,7 @@ Server createEchoServer() {
           description('Message to echo back'),
         ]),
       ]),
-          (request) async {
+      (request) async {
         try {
           final message = request.params['arguments']['message'] as String;
           print('Received echo request: "$message"');
@@ -160,8 +160,7 @@ Future<void> connectAndUseEchoTool(Client client) async {
   );
 
   print(
-    'Connected to server: ${initResult.serverInfo.name} ${initResult.serverInfo
-        .version}',
+    'Connected to server: ${initResult.serverInfo.name} ${initResult.serverInfo.version}',
   );
 
   // List available tools
@@ -171,9 +170,7 @@ Future<void> connectAndUseEchoTool(Client client) async {
   print('Available tools: ${toolsResult.tools.map((t) => t.name).join(', ')}');
 
   // Try calling the echo tool
-  final echoTool = toolsResult.tools
-      .where((t) => t.name == 'echo')
-      .firstOrNull;
+  final echoTool = toolsResult.tools.where((t) => t.name == 'echo').firstOrNull;
 
   if (echoTool != null) {
     print('Calling echo tool...');
@@ -190,11 +187,11 @@ Future<void> connectAndUseEchoTool(Client client) async {
 
       // Display the result
       final resultText =
-      echoResult.content.firstWhere(
-            (c) => c is TextContent,
-        orElse: () => TextContent(text: 'No text response'),
-      )
-      as TextContent;
+          echoResult.content.firstWhere(
+                (c) => c is TextContent,
+                orElse: () => TextContent(text: 'No text response'),
+              )
+              as TextContent;
 
       print('Echo result: ${resultText.text}');
 

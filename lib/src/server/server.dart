@@ -17,23 +17,23 @@ import 'package:synchronized/synchronized.dart';
 
 /// Handler function for resource requests.
 typedef ResourceHandlerFunction =
-Future<List<ResourceContents>> Function(ReadResourceRequest request);
+    Future<List<ResourceContents>> Function(ReadResourceRequest request);
 
 /// Handler function for resource template requests.
 typedef ResourceTemplateHandlerFunction =
-Future<List<ResourceContents>> Function(ReadResourceRequest request);
+    Future<List<ResourceContents>> Function(ReadResourceRequest request);
 
 /// Handler function for prompt requests.
 typedef PromptHandlerFunction =
-Future<GetPromptResult> Function(GetPromptRequest request);
+    Future<GetPromptResult> Function(GetPromptRequest request);
 
 /// Handler function for tool calls.
 typedef ToolHandlerFunction =
-Future<CallToolResult> Function(CallToolRequest request);
+    Future<CallToolResult> Function(CallToolRequest request);
 
 /// Handler function for notifications.
 typedef NotificationHandlerFunction =
-void Function(JsonRpcNotification notification);
+    void Function(JsonRpcNotification notification);
 
 /// Combines a tool with its handler function.
 class ServerTool {
@@ -177,7 +177,7 @@ class Server {
 
   // Notification management
   final StreamController<ServerNotification> _notifications =
-  StreamController<ServerNotification>.broadcast();
+      StreamController<ServerNotification>.broadcast();
 
   // Client context and locks
   NotificationContext? _currentClient;
@@ -303,8 +303,10 @@ class Server {
   }
 
   // Resource methods
-  Future<JsonRpcMessage> _handleListResources(RequestId id,
-      Map<String, dynamic> jsonMap,) async {
+  Future<JsonRpcMessage> _handleListResources(
+    RequestId id,
+    Map<String, dynamic> jsonMap,
+  ) async {
     if (capabilities.resources == null) {
       return createErrorResponse(id, methodNotFound, 'Resources not supported');
     }
@@ -318,8 +320,10 @@ class Server {
     return createResponse(id, result.toJson());
   }
 
-  Future<JsonRpcMessage> _handleListResourceTemplates(RequestId id,
-      Map<String, dynamic> jsonMap,) async {
+  Future<JsonRpcMessage> _handleListResourceTemplates(
+    RequestId id,
+    Map<String, dynamic> jsonMap,
+  ) async {
     if (capabilities.resources == null) {
       return createErrorResponse(id, methodNotFound, 'Resources not supported');
     }
@@ -333,8 +337,10 @@ class Server {
     return createResponse(id, result.toJson());
   }
 
-  Future<JsonRpcMessage> _handleReadResource(RequestId id,
-      Map<String, dynamic> jsonMap,) async {
+  Future<JsonRpcMessage> _handleReadResource(
+    RequestId id,
+    Map<String, dynamic> jsonMap,
+  ) async {
     if (capabilities.resources == null) {
       return createErrorResponse(id, methodNotFound, 'Resources not supported');
     }
@@ -384,9 +390,11 @@ class Server {
     }
   }
 
-  Future<JsonRpcMessage> _executeResourceHandler(RequestId id,
-      ResourceHandlerFunction handler,
-      ReadResourceRequest request,) async {
+  Future<JsonRpcMessage> _executeResourceHandler(
+    RequestId id,
+    ResourceHandlerFunction handler,
+    ReadResourceRequest request,
+  ) async {
     try {
       final contents = await handler(request);
       final result = ReadResourceResult(contents: contents);
@@ -400,9 +408,11 @@ class Server {
     }
   }
 
-  Future<JsonRpcMessage> _executeResourceTemplateHandler(RequestId id,
-      ResourceTemplateHandlerFunction handler,
-      ReadResourceRequest request,) async {
+  Future<JsonRpcMessage> _executeResourceTemplateHandler(
+    RequestId id,
+    ResourceTemplateHandlerFunction handler,
+    ReadResourceRequest request,
+  ) async {
     try {
       final contents = await handler(request);
       final result = ReadResourceResult(contents: contents);
@@ -416,8 +426,10 @@ class Server {
     }
   }
 
-  Future<JsonRpcMessage> _handleSubscribe(RequestId id,
-      Map<String, dynamic> jsonMap,) async {
+  Future<JsonRpcMessage> _handleSubscribe(
+    RequestId id,
+    Map<String, dynamic> jsonMap,
+  ) async {
     if (capabilities.resources == null || !capabilities.resources!.subscribe) {
       return createErrorResponse(
         id,
@@ -431,8 +443,10 @@ class Server {
     return createResponse(id, <String, dynamic>{});
   }
 
-  Future<JsonRpcMessage> _handleUnsubscribe(RequestId id,
-      Map<String, dynamic> jsonMap,) async {
+  Future<JsonRpcMessage> _handleUnsubscribe(
+    RequestId id,
+    Map<String, dynamic> jsonMap,
+  ) async {
     if (capabilities.resources == null || !capabilities.resources!.subscribe) {
       return createErrorResponse(
         id,
@@ -447,8 +461,10 @@ class Server {
   }
 
   // Prompt methods
-  Future<JsonRpcMessage> _handleListPrompts(RequestId id,
-      Map<String, dynamic> jsonMap,) async {
+  Future<JsonRpcMessage> _handleListPrompts(
+    RequestId id,
+    Map<String, dynamic> jsonMap,
+  ) async {
     if (capabilities.prompts == null) {
       return createErrorResponse(id, methodNotFound, 'Prompts not supported');
     }
@@ -462,8 +478,10 @@ class Server {
     return createResponse(id, result.toJson());
   }
 
-  Future<JsonRpcMessage> _handleGetPrompt(RequestId id,
-      Map<String, dynamic> jsonMap,) async {
+  Future<JsonRpcMessage> _handleGetPrompt(
+    RequestId id,
+    Map<String, dynamic> jsonMap,
+  ) async {
     if (capabilities.prompts == null) {
       return createErrorResponse(id, methodNotFound, 'Prompts not supported');
     }
@@ -493,9 +511,11 @@ class Server {
     return _executePromptHandler(id, handler!, request);
   }
 
-  Future<JsonRpcMessage> _executePromptHandler(RequestId id,
-      PromptHandlerFunction handler,
-      GetPromptRequest request,) async {
+  Future<JsonRpcMessage> _executePromptHandler(
+    RequestId id,
+    PromptHandlerFunction handler,
+    GetPromptRequest request,
+  ) async {
     try {
       final result = await handler(request);
       return createResponse(id, result.toJson());
@@ -509,8 +529,10 @@ class Server {
   }
 
   // Tool methods
-  Future<JsonRpcMessage> _handleListTools(RequestId id,
-      Map<String, dynamic> jsonMap,) async {
+  Future<JsonRpcMessage> _handleListTools(
+    RequestId id,
+    Map<String, dynamic> jsonMap,
+  ) async {
     if (capabilities.tools == null) {
       return createErrorResponse(id, methodNotFound, 'Tools not supported');
     }
@@ -527,8 +549,10 @@ class Server {
     return createResponse(id, result.toJson());
   }
 
-  Future<JsonRpcMessage> _handleCallTool(RequestId id,
-      Map<String, dynamic> jsonMap,) async {
+  Future<JsonRpcMessage> _handleCallTool(
+    RequestId id,
+    Map<String, dynamic> jsonMap,
+  ) async {
     if (capabilities.tools == null) {
       return createErrorResponse(id, methodNotFound, 'Tools not supported');
     }
@@ -558,9 +582,11 @@ class Server {
     return _executeToolHandler(id, tool!.handler, request);
   }
 
-  Future<JsonRpcMessage> _executeToolHandler(RequestId id,
-      ToolHandlerFunction handler,
-      CallToolRequest request,) async {
+  Future<JsonRpcMessage> _executeToolHandler(
+    RequestId id,
+    ToolHandlerFunction handler,
+    CallToolRequest request,
+  ) async {
     try {
       final result = await handler(request);
       return createResponse(id, result.toJson());
@@ -574,8 +600,10 @@ class Server {
   }
 
   // Logging methods
-  Future<JsonRpcMessage> _handleSetLevel(RequestId id,
-      Map<String, dynamic> jsonMap,) async {
+  Future<JsonRpcMessage> _handleSetLevel(
+    RequestId id,
+    Map<String, dynamic> jsonMap,
+  ) async {
     if (!capabilities.logging) {
       return createErrorResponse(id, methodNotFound, 'Logging not supported');
     }
@@ -586,8 +614,10 @@ class Server {
   }
 
   // Completion methods
-  Future<JsonRpcMessage> _handleComplete(RequestId id,
-      Map<String, dynamic> jsonMap,) async {
+  Future<JsonRpcMessage> _handleComplete(
+    RequestId id,
+    Map<String, dynamic> jsonMap,
+  ) async {
     // Implementation would go here...
 
     return createResponse(id, <String, dynamic>{
@@ -628,8 +658,10 @@ class Server {
   /// Resource templates allow for dynamic resources with variable parts in their URIs.
   /// The [template] defines the URI template pattern, while the [handler] function
   /// is called when a client requests to read a resource matching the template.
-  void addResourceTemplate(ResourceTemplate template,
-      ResourceTemplateHandlerFunction handler,) {
+  void addResourceTemplate(
+    ResourceTemplate template,
+    ResourceTemplateHandlerFunction handler,
+  ) {
     _lock.synchronized(() {
       capabilities.resources ??= ResourceCapabilities();
 
@@ -717,8 +749,10 @@ class Server {
   }
 
   /// Adds a notification server.
-  void addNotificationHandler(String method,
-      NotificationHandlerFunction handler,) {
+  void addNotificationHandler(
+    String method,
+    NotificationHandlerFunction handler,
+  ) {
     _lock.synchronized(() {
       _notificationHandlers[method] = handler;
     });
@@ -787,7 +821,7 @@ class Server {
 
   /// State of the server closure
   final StreamController<bool> _closeStateController =
-  StreamController<bool>.broadcast();
+      StreamController<bool>.broadcast();
 
   /// Stream notifying the state of the server closure
   Stream<bool> get closeState => _closeStateController.stream;
