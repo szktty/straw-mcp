@@ -242,9 +242,9 @@ void main() async {
 
     // Send notification that the resource has changed
     try {
-      handler.sendNotificationToClient('notifications/resources/updated', {
-        'uri': 'resource://example/hello',
-      });
+      handler.sendNotification(
+        ResourceUpdatedNotification(uri: 'resource://example/hello'),
+      );
       logger.info('Resource update notification sent');
     } catch (e) {
       logger.warning('Failed to send resource update notification: $e');

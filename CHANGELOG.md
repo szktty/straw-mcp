@@ -11,7 +11,7 @@
 - Restruct `JsonRpcNotification` class.
 - `Tool` constructor validates `name`.
 - Rename `Tool.parameters` to `Tool.inputSchema`.
-- Deprecate `ProtocolHandler.sendNotificationToClient` method.
+- Remove `ProtocolHandler.sendNotificationToClient` method.
 
 ## 0.5.0
 

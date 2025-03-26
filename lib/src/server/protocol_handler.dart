@@ -713,7 +713,7 @@ class ProtocolHandler {
     });
 
     if (shouldNotify) {
-      sendNotificationToClient('notifications/tools/list_changed', null);
+      sendNotification(ToolListChangedNotification());
     }
   }
 
@@ -732,7 +732,7 @@ class ProtocolHandler {
     });
 
     if (shouldNotify) {
-      sendNotificationToClient('notifications/tools/list_changed', null);
+      sendNotification(ToolListChangedNotification());
     }
   }
 
@@ -749,7 +749,7 @@ class ProtocolHandler {
     });
 
     if (shouldNotify) {
-      sendNotificationToClient('notifications/tools/list_changed', null);
+      sendNotification(ToolListChangedNotification());
     }
   }
 
@@ -761,22 +761,6 @@ class ProtocolHandler {
     _lock.synchronized(() {
       _notificationHandlers[method] = handler;
     });
-  }
-
-  /// Sends a notification to the current client.
-  @Deprecated('Use sendNotification instead')
-  void sendNotificationToClient(String method, dynamic params) {
-    if (_currentClient == null) {
-      return;
-    }
-
-    final notification = JsonRpcNotification(
-      version: jsonRpcVersion,
-      method: method,
-      params: params,
-    );
-
-    _notifications.add(ServerNotification(_currentClient!, notification));
   }
 
   /// Sets the current client context.
@@ -813,11 +797,7 @@ class ProtocolHandler {
     if (!capabilities.logging) {
       return; // Logging not supported/enabled
     }
-
-    final method = notification.method;
-    final params = notification.params;
-
-    sendNotificationToClient(method, params);
+    sendNotification(notification);
   }
 
   /// Sends a notification to the client.

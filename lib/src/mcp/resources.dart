@@ -129,8 +129,10 @@ class UnsubscribeRequest extends Request {
 
 /// Notification indicating that a resource has been updated.
 class ResourceUpdatedNotification extends Notification {
-  ResourceUpdatedNotification({required String uri})
+  ResourceUpdatedNotification({required this.uri})
     : super('notifications/resources/updated', {'uri': uri});
+
+  final String uri;
 }
 
 /// Base class for annotated objects in the MCP protocol.
