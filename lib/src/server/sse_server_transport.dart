@@ -12,6 +12,11 @@ import 'package:straw_mcp/src/json_rpc/codec.dart';
 import 'package:straw_mcp/src/json_rpc/message.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
 import 'package:straw_mcp/src/server/server.dart';
+import 'package:straw_mcp/src/shared/transport.dart';
+
+/// A function that can be used to customize context for SSE server.
+typedef SseServerTransportContextFunction =
+    void Function(NotificationContext context);
 
 /// Configuration options for SSE server.
 class SseServerTransportOptions {
@@ -24,6 +29,7 @@ class SseServerTransportOptions {
     this.heartbeatInterval = const Duration(seconds: 30),
     this.logger,
     this.logFilePath,
+    this.contextFunction,
   });
 
   /// The hostname to bind to.
@@ -46,23 +52,27 @@ class SseServerTransportOptions {
 
   /// Path to log file (optional)
   final String? logFilePath;
+
+  /// Function to customize client context.
+  final SseServerTransportContextFunction? contextFunction;
 }
 
-/// HTTP server implementation for MCP.
+/// HTTP server implementation for MCP using Server-Sent Events (SSE).
 ///
 /// Provides an HTTP interface to an MCP server.
-class SseServerTransport {
+class SseServerTransport extends TransportBase {
   /// Creates a new HTTP MCP server.
-  SseServerTransport(
-    this.server, {
-    required this.host,
-    required this.port,
-    required this.maxIdleTime,
-    required this.maxConnectionTime,
-    required this.heartbeatInterval,
-    this.logger,
-    this.logFilePath,
-  });
+  SseServerTransport(this.server, {required SseServerTransportOptions options})
+    : host = options.host,
+      port = options.port,
+      maxIdleTime = options.maxIdleTime,
+      maxConnectionTime = options.maxConnectionTime,
+      heartbeatInterval = options.heartbeatInterval,
+      logger = options.logger,
+      logFilePath = options.logFilePath,
+      contextFunction = options.contextFunction {
+    _setupEventHandlers();
+  }
 
   /// The MCP server instance.
   final Server server;
@@ -88,6 +98,9 @@ class SseServerTransport {
   /// Path to log file (optional)
   final String? logFilePath;
 
+  /// Function to customize client context.
+  final SseServerTransportContextFunction? contextFunction;
+
   /// The HTTP server instance.
   HttpServer? _httpServer;
 
@@ -100,13 +113,20 @@ class SseServerTransport {
   /// File for logging if logFilePath is specified.
   IOSink? _logFile;
 
-  /// Starts the HTTP server.
-  Future<void> start() async {
-    if (_isRunning) {
-      _log('Server already running');
-      return;
-    }
+  /// Active SSE connections mapped by session ID
+  final Map<String, HttpResponse> _sseConnections = {};
 
+  /// Subscription for notifications.
+  StreamSubscription<ServerNotification>? _notificationSubscription;
+
+  /// Standard client context.
+  static final NotificationContext _defaultContext = NotificationContext(
+    'sse',
+    'sse',
+  );
+
+  /// Set up event handlers for various server events.
+  void _setupEventHandlers() {
     // Open log file if path is specified
     if (logFilePath != null) {
       try {
@@ -121,6 +141,14 @@ class SseServerTransport {
         _logError('Failed to open log file at $logFilePath: $e');
       }
     }
+  }
+
+  @override
+  Future<void> start() async {
+    if (_isRunning) {
+      _log('Server already running');
+      return;
+    }
 
     try {
       _httpServer = await HttpServer.bind(host, port);
@@ -128,10 +156,31 @@ class SseServerTransport {
       server.logInfo('MCP Server running on http://$host:$port');
       _log('MCP Server running on http://$host:$port');
 
+      // Handle notifications from server
+      _notificationSubscription = server.notifications.listen((notification) {
+        // Find the appropriate SSE connection(s) to send the notification to
+        final sessionId = notification.context.sessionId;
+        final response = _sseConnections[sessionId];
+        if (response != null) {
+          try {
+            final jsonNotification = _codec.encodeNotification(
+              notification.notification,
+            );
+            final data = json.encode(jsonNotification);
+
+            // Send the notification as an SSE event
+            response.write('data: $data\n\n');
+          } on Exception catch (e) {
+            _logWarning('Error sending SSE notification: $e');
+          }
+        }
+      });
+
       // Process incoming requests
       await _processRequests();
     } catch (e) {
       _logError('Failed to start server: $e');
+      handleError(e);
       rethrow;
     }
   }
@@ -144,30 +193,56 @@ class SseServerTransport {
       await for (final HttpRequest request in _httpServer!) {
         if (!_isRunning) break;
 
-        if (request.method == 'POST' && request.uri.path == '/jsonrpc') {
-          await _handleJsonRpcRequest(request);
-        } else if (request.method == 'GET' && request.uri.path == '/sse') {
-          await _handleSseRequest(request);
-        } else {
-          request.response.statusCode = HttpStatus.notFound;
-          await request.response.close();
+        try {
+          if (request.method == 'POST' && request.uri.path == '/jsonrpc') {
+            await _handleJsonRpcRequest(request);
+          } else if (request.method == 'GET' && request.uri.path == '/sse') {
+            await _handleSseRequest(request);
+          } else {
+            request.response.statusCode = HttpStatus.notFound;
+            await request.response.close();
+          }
+        } catch (e) {
+          _logError('Error handling request: $e');
+          try {
+            request.response.statusCode = HttpStatus.internalServerError;
+            await request.response.close();
+          } catch (_) {
+            // Ignore errors when trying to close response
+          }
         }
       }
     } catch (e) {
       if (_isRunning) {
         _logError('Error processing requests: $e');
+        handleError(e);
       }
     }
   }
 
-  /// Stops the HTTP server.
-  Future<void> stop() async {
+  @override
+  Future<void> close() async {
     if (!_isRunning) return;
 
     _isRunning = false;
     _log('Stopping SSE server');
 
     try {
+      // Cancel notification subscription
+      await _notificationSubscription?.cancel();
+      _notificationSubscription = null;
+
+      // Close all active SSE connections
+      for (final response in _sseConnections.values) {
+        try {
+          await response.close();
+        } catch (_) {
+          // Ignore errors when closing responses
+        }
+      }
+      _sseConnections.clear();
+
+      // Close the HTTP server
       await _httpServer?.close();
       _log('HTTP server closed');
     } catch (e) {
@@ -183,6 +258,48 @@ class SseServerTransport {
       }
     } catch (e) {
       _logError('Error closing log file: $e');
+    }
+
+    // Notify that the transport is closed
+    handleClose();
+  }
+
+  @override
+  Future<void> send(JsonRpcMessage message) async {
+    if (!_isRunning) {
+      _logWarning('Server not running, cannot send message');
+      return;
+    }
+
+    try {
+      Map<String, dynamic> jsonMap;
+
+      // Handle different message types
+      if (message is JsonRpcResponse) {
+        jsonMap = _codec.encodeResponse(message);
+      } else if (message is JsonRpcError) {
+        jsonMap = _codec.encodeResponse(message);
+      } else if (message is JsonRpcNotification) {
+        jsonMap = _codec.encodeNotification(message);
+      } else {
+        _logError('Unknown message type: ${message.runtimeType}');
+        return;
+      }
+
+      // Encode as JSON
+      final data = json.encode(jsonMap);
+
+      // Broadcast to all connected SSE clients
+      for (final response in _sseConnections.values) {
+        try {
+          response.write('data: $data\n\n');
+        } catch (e) {
+          _logWarning('Error sending message to client: $e');
+        }
+      }
+    } catch (e) {
+      _logError('Error encoding message: $e');
+      handleError(e);
     }
   }
 
@@ -205,7 +322,14 @@ class SseServerTransport {
     final context = NotificationContext(clientId, sessionId);
     server.setCurrentClient(context);
 
+    // ユーザーカスタム処理がある場合は実行
+    contextFunction?.call(context);
+
     try {
+      // メッセージをクライアントに通知
+      handleMessage(body);
+
+      // サーバーでメッセージを処理
       final response = await server.handleMessage(body);
 
       request.response.headers.set('Content-Type', 'application/json');
@@ -253,16 +377,25 @@ class SseServerTransport {
     // クリーンアップフラグ
     var isClosed = false;
 
-    // サブスクリプションを定義
-    StreamSubscription<ServerNotification>? subscription;
+    // Context の設定
+    final context = NotificationContext(clientId, sessionId);
+    server.setCurrentClient(context);
+
+    // ユーザーカスタム処理がある場合は実行
+    contextFunction?.call(context);
+
+    // Save the connection
+    _sseConnections[sessionId] = request.response;
+
+    // ハートビートタイマー
     Timer? heartbeatTimer;
 
     // クリーンアップ処理
     void cleanup() {
       if (!isClosed) {
         isClosed = true;
-        subscription?.cancel();
         heartbeatTimer?.cancel();
+        _sseConnections.remove(sessionId);
         try {
           request.response.close();
         } catch (e) {
@@ -270,39 +403,6 @@ class SseServerTransport {
         }
       }
     }
-
-    // Listen for server notifications
-    subscription = server.notifications.listen(
-      (notification) {
-        if (isClosed) return;
-
-        if (notification.context.clientId == clientId &&
-            notification.context.sessionId == sessionId) {
-          try {
-            final jsonNotification = _codec.encodeNotification(
-              notification.notification,
-            );
-            final data = json.encode(jsonNotification);
-
-            // Send the notification as an SSE event
-            request.response.write('data: $data\n\n');
-
-            // アクティビティ時間の更新
-            lastActivityTime = DateTime.now();
-          } on Object catch (e) {
-            _logWarning('Error sending SSE notification: $e');
-          }
-        }
-      },
-      onError: (Object e) {
-        _logWarning('Error in notification stream: $e');
-        cleanup();
-      },
-      onDone: () {
-        _log('Notification stream closed for client: $clientId');
-        cleanup();
-      },
-    );
 
     // Keep the connection alive with heartbeats
     heartbeatTimer = Timer.periodic(heartbeatInterval, (_) {
@@ -390,29 +490,4 @@ class SseServerTransport {
       }
     }
   }
-}
-
-/// Create an HTTP MCP server.
-///
-/// Returns a [SseServerTransport] instance that can be used to control the server.
-/// Use the [SseServerTransport.start] method to begin listening for connections.
-SseServerTransport serveSse(
-  Server server, {
-  SseServerTransportOptions? options,
-  String? logFilePath,
-  Logger? logger,
-}) {
-  // Combine provided options with defaults
-  final effectiveOptions = options ?? SseServerTransportOptions();
-
-  return SseServerTransport(
-    server,
-    host: effectiveOptions.host,
-    port: effectiveOptions.port,
-    maxIdleTime: effectiveOptions.maxIdleTime,
-    maxConnectionTime: effectiveOptions.maxConnectionTime,
-    heartbeatInterval: effectiveOptions.heartbeatInterval,
-    logger: logger ?? effectiveOptions.logger ?? Logger('SseServer'),
-    logFilePath: logFilePath ?? effectiveOptions.logFilePath,
-  );
 }

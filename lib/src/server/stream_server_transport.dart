@@ -10,12 +10,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 import 'package:path/path.dart' show dirname;
 import 'package:straw_mcp/src/json_rpc/codec.dart';
 import 'package:straw_mcp/src/json_rpc/message.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
 import 'package:straw_mcp/src/server/server.dart';
 import 'package:straw_mcp/src/shared/stdio_buffer.dart';
+import 'package:straw_mcp/src/shared/transport.dart';
 import 'package:synchronized/synchronized.dart';
 
 /// A function that can be used to customize context for stream server.
@@ -62,7 +64,7 @@ class StreamServerTransportOptions {
   final Stream<List<int>> stream;
 
   /// Output sink for sending responses.
-  final IOSink sink;
+  final StreamSink<List<int>> sink;
 
   /// Logger for error messages.
   final Logger? logger;
@@ -75,7 +77,7 @@ class StreamServerTransportOptions {
 }
 
 /// MCP server implementation that communicates via input/output streams.
-class StreamServerTransport {
+abstract class StreamServerTransport extends TransportBase {
   /// Creates a new stream-based MCP server.
   ///
   /// - [server]: The MCP server to wrap
@@ -104,32 +106,6 @@ class StreamServerTransport {
     }
   }
 
-  /// Factory constructor for creating a server using standard input/output streams.
-  ///
-  /// This is the recommended way to create a server for command-line integration
-  /// and desktop applications that use stdio.
-  ///
-  /// Uses a broadcast stream for stdin to allow multiple listeners.
-  ///
-  /// - [logger]: Optional logger for error messages
-  /// - [contextFunction]: Optional function to customize client context
-  /// - [logFilePath]: Optional path to a log file for recording server events
-  factory StreamServerTransport.stdio(
-    Server server, {
-    Logger? logger,
-    StreamServerTransportContextFunction? contextFunction,
-    String? logFilePath,
-  }) {
-    return StreamServerTransport(
-      server,
-      options: StreamServerTransportOptions.stdio(
-        logger: logger,
-        contextFunction: contextFunction,
-        logFilePath: logFilePath,
-      ),
-    );
-  }
-
   /// The wrapped MCP server.
   final Server server;
 
@@ -146,7 +122,7 @@ class StreamServerTransport {
   final Stream<List<int>> stream;
 
   /// Output sink for sending responses.
-  final IOSink sink;
+  final StreamSink<List<int>> sink;
 
   /// File for logging if logFilePath is specified.
   IOSink? _logFile;
@@ -184,8 +160,8 @@ class StreamServerTransport {
     'stream',
   );
 
-  /// Starts listening on input stream and processing messages.
-  Future<void> listen() async {
+  @override
+  Future<void> start() async {
     if (_isRunning) {
       return;
     }
@@ -207,7 +183,7 @@ class StreamServerTransport {
           _logDebug(
             'Sending notification: ${notification.notification.method}',
           );
-          _writeResponse(notification.notification, sink);
+          send(notification.notification);
         } on Exception catch (e) {
           _logError('Error writing notification response: $e');
         }
@@ -220,6 +196,7 @@ class StreamServerTransport {
       _onData,
       onError: (Object error) {
         _logError('Error reading from input stream: $error');
+        handleError(error);
       },
       onDone: () {
         _log('Input stream closed');
@@ -253,6 +230,7 @@ class StreamServerTransport {
           await _processMessage(jsonMap);
         } on Exception catch (e) {
           _logError('Error processing buffer: $e');
+          handleError(e);
 
           // エラーレスポンスを送信
           try {
@@ -261,7 +239,7 @@ class StreamServerTransport {
               internalError,
               'Internal error: $e',
             );
-            await _writeResponse(errorResponse, sink);
+            await send(errorResponse);
           } on Exception catch (respError) {
             _logError('Failed to send error response: $respError');
           }
@@ -279,6 +257,9 @@ class StreamServerTransport {
     try {
       // メッセージをJSON文字列に変換
       final messageJson = json.encode(jsonMap);
+
+      // 受信したメッセージを通知
+      handleMessage(messageJson);
 
       // Handle the message using the wrapped server
       JsonRpcMessage? response;
@@ -298,7 +279,7 @@ class StreamServerTransport {
           internalError,
           'Server error: $handleError',
         );
-        await _writeResponse(errorResponse, sink);
+        await send(errorResponse);
         return;
       }
 
@@ -306,7 +287,7 @@ class StreamServerTransport {
       if (response != null) {
         try {
           _log('Sending response for ID: ${jsonMap["id"]}');
-          await _writeResponse(response, sink);
+          await send(response);
         } on Exception catch (writeError) {
           _logError('Error writing response: $writeError');
         }
@@ -314,35 +295,37 @@ class StreamServerTransport {
     } on Exception catch (e) {
       // Catch-all for any other errors
       _logError('Unexpected error processing message: $e');
+      handleError(e);
+
       try {
         final errorResponse = createErrorResponse(
           null,
           internalError,
           'Unexpected error: $e',
         );
-        await _writeResponse(errorResponse, sink);
+        await send(errorResponse);
       } on Exception catch (respError) {
         _logError('Failed to send error response: $respError');
       }
     }
   }
 
-  /// Writes a JSON-RPC response to the specified output stream.
-  Future<void> _writeResponse(JsonRpcMessage response, IOSink output) async {
+  @override
+  Future<void> send(JsonRpcMessage message) async {
     return _writeLock.synchronized(() async {
       try {
         Map<String, dynamic> jsonMap;
 
         // Handle different response types
         try {
-          if (response is JsonRpcResponse) {
-            jsonMap = _codec.encodeResponse(response);
-          } else if (response is JsonRpcError) {
-            jsonMap = _codec.encodeResponse(response);
-          } else if (response is JsonRpcNotification) {
-            jsonMap = _codec.encodeNotification(response);
+          if (message is JsonRpcResponse) {
+            jsonMap = _codec.encodeResponse(message);
+          } else if (message is JsonRpcError) {
+            jsonMap = _codec.encodeResponse(message);
+          } else if (message is JsonRpcNotification) {
+            jsonMap = _codec.encodeNotification(message);
           } else {
-            _logError('Unknown response type: ${response.runtimeType}');
+            _logError('Unknown response type: ${message.runtimeType}');
             return;
           }
         } on Exception catch (encodeError) {
@@ -370,15 +353,52 @@ class StreamServerTransport {
           final jsonString = StdioUtils.serializeMessage(jsonMap);
 
           // Write response as JSON followed by newline
-          output.write(jsonString);
-          await output.flush(); // Ensure the response is sent immediately
+          sink.add(utf8.encode(jsonString));
+          await flushOutput();
         } on Exception catch (writeError) {
           _logError('Error writing to output stream: $writeError');
+          handleError(writeError);
         }
       } on Exception catch (e) {
         _logError('Unexpected error writing response: $e');
+        handleError(e);
       }
     });
+  }
+
+  /// Flushes any buffered output to the client.
+  @protected
+  Future<void> flushOutput();
+
+  @override
+  Future<void> close() async {
+    if (!_isRunning) {
+      return;
+    }
+
+    _isRunning = false;
+
+    // 通知サブスクリプションのキャンセル
+    await _notificationSubscription?.cancel();
+    _notificationSubscription = null;
+
+    // 入力ストリームサブスクリプションのキャンセル
+    await _inputSubscription?.cancel();
+    _inputSubscription = null;
+
+    // バッファのクリア
+    _readBuffer.clear();
+
+    // Close log file if open
+    if (_logFile != null) {
+      _writeToLogFile('[INFO] Closing server');
+      await _logFile!.flush();
+      await _logFile!.close();
+      _logFile = null;
+    }
+
+    // 接続終了を通知
+    handleClose();
   }
 
   /// Logs an error message.
@@ -410,149 +430,5 @@ class StreamServerTransport {
         logger?.severe('Failed to write to log file: $e');
       }
     }
-  }
-
-  /// Closes the server and releases resources.
-  Future<void> close() async {
-    if (!_isRunning) {
-      return;
-    }
-
-    _isRunning = false;
-
-    // 通知サブスクリプションのキャンセル
-    await _notificationSubscription?.cancel();
-    _notificationSubscription = null;
-
-    // 入力ストリームサブスクリプションのキャンセル
-    await _inputSubscription?.cancel();
-    _inputSubscription = null;
-
-    // バッファのクリア
-    _readBuffer.clear();
-
-    // Close log file if open
-    if (_logFile != null) {
-      _writeToLogFile('[INFO] Closing server');
-      await _logFile!.flush();
-      await _logFile!.close();
-      _logFile = null;
-    }
-  }
-}
-
-/// Convenience function to serve an MCP server over stdio.
-///
-/// This function creates a new StreamServer.stdio and starts listening
-/// for JSON-RPC messages on standard input, writing responses to
-/// standard output. It handles signals and stdin closure for graceful
-/// shutdown and ensures proper resource cleanup.
-Future<void> serveStdio(
-  Server server, {
-  StreamServerTransportOptions? options,
-}) async {
-  final log = options?.logger ?? Logger('StreamServer');
-  final streamServer = StreamServerTransport.stdio(
-    server,
-    logger: log,
-    contextFunction: options?.contextFunction,
-    logFilePath: options?.logFilePath,
-  );
-
-  // シャットダウン処理のセットアップ
-  final shutdownCompleter = Completer<void>();
-
-  // stdinのクローズを検出するためのリスナー
-  final stdinSubscription = streamServer.stream.listen(
-    (_) {
-      // データ処理はStreamServerに任せる
-    },
-    onDone: () async {
-      log.info('stdin stream closed, shutting down');
-      try {
-        await server.close();
-        await streamServer.close();
-
-        if (!shutdownCompleter.isCompleted) {
-          shutdownCompleter.complete();
-        }
-      } catch (e) {
-        log.severe('Error during shutdown: $e');
-        if (!shutdownCompleter.isCompleted) {
-          shutdownCompleter.completeError(e);
-        }
-      }
-    },
-    onError: (Object error) {
-      log.severe('Error on stdin: $error');
-      if (!shutdownCompleter.isCompleted) {
-        shutdownCompleter.completeError(error);
-      }
-    },
-  );
-
-  // シグナルハンドラーのセットアップ
-  StreamSubscription<ProcessSignal>? sigintSubscription;
-  StreamSubscription<ProcessSignal>? sigtermSubscription;
-
-  sigintSubscription = ProcessSignal.sigint.watch().listen((_) async {
-    log.info('Received SIGINT, shutting down');
-    try {
-      await server.close();
-      await streamServer.close();
-      await sigintSubscription?.cancel();
-      await sigtermSubscription?.cancel();
-      exit(0);
-    } catch (e) {
-      log.severe('Error during SIGINT shutdown: $e');
-      exit(1);
-    }
-  });
-
-  sigtermSubscription = ProcessSignal.sigterm.watch().listen((_) async {
-    log.info('Received SIGTERM, shutting down');
-    try {
-      await server.close();
-      await streamServer.close();
-      await sigintSubscription?.cancel();
-      await sigtermSubscription?.cancel();
-      exit(0);
-    } on Exception catch (e) {
-      log.severe('Error during SIGTERM shutdown: $e');
-      exit(1);
-    }
-  });
-
-  // サーバーの状態を監視
-  server.closeState.listen((isClosed) {
-    if (isClosed && !shutdownCompleter.isCompleted) {
-      log.info('Server requested shutdown');
-      shutdownCompleter.complete();
-    }
-  });
-
-  // リッスン開始
-  try {
-    await streamServer.listen();
-  } catch (e) {
-    log.severe('Error in stream server: $e');
-    if (!shutdownCompleter.isCompleted) {
-      shutdownCompleter.completeError(e);
-    }
-  }
-
-  // シャットダウンが完了するまで待機
-  await shutdownCompleter.future;
-
-  // リソースの解放
-  try {
-    await sigintSubscription.cancel();
-    await sigtermSubscription.cancel();
-    await stdinSubscription.cancel();
-
-    // 最終的な終了ログ
-    log.info('MCP server completely shut down');
-  } catch (e) {
-    log.severe('Error during final cleanup: $e');
   }
 }

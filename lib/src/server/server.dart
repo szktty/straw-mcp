@@ -13,6 +13,7 @@ import 'package:straw_mcp/src/mcp/resources.dart';
 import 'package:straw_mcp/src/mcp/tools.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
 import 'package:straw_mcp/src/mcp/utils.dart';
+import 'package:straw_mcp/src/shared/transport.dart';
 import 'package:synchronized/synchronized.dart';
 
 /// Handler function for resource requests.
@@ -183,6 +184,10 @@ class Server {
   NotificationContext? _currentClient;
   final Lock _lock = Lock();
   bool _initialized = false;
+
+  Future<void> start(Transport transport) async {
+    await transport.start();
+  }
 
   /// Handles an incoming JSON-RPC message.
   Future<JsonRpcMessage?> handleMessage(String message) async {
