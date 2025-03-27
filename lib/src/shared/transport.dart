@@ -135,29 +135,37 @@ abstract class TransportBase implements Transport {
     _onCloseHandler?.call();
   }
 
+  /// @nodoc
   /// Logs an error message.
   @protected
+  @internal
   void logError(String message) {
     logger?.severe(message);
     _writeToLogFile('[ERROR] $message');
   }
 
+  /// @nodoc
   /// Logs a warning message.
   @protected
+  @internal
   void logWarning(String message) {
     logger?.warning(message);
     _writeToLogFile('[WARNING] $message');
   }
 
+  /// @nodoc
   /// Logs an informational message.
   @protected
+  @internal
   void log(String message) {
     logger?.info(message);
     _writeToLogFile('[INFO] $message');
   }
 
+  /// @nodoc
   /// Logs a debug message.
   @protected
+  @internal
   void logDebug(String message) {
     logger?.fine(message);
     _writeToLogFile('[DEBUG] $message');
