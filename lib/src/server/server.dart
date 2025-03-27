@@ -13,6 +13,8 @@ import 'package:straw_mcp/src/mcp/resources.dart';
 import 'package:straw_mcp/src/mcp/tools.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
 import 'package:straw_mcp/src/mcp/utils.dart';
+import 'package:straw_mcp/src/server/sse_server_transport.dart';
+import 'package:straw_mcp/src/server/stdio_server_transport.dart';
 import 'package:straw_mcp/src/shared/transport.dart';
 import 'package:synchronized/synchronized.dart';
 
@@ -185,8 +187,65 @@ class Server {
   final Lock _lock = Lock();
   bool _initialized = false;
 
+  // トランスポート関連
+  Transport? _transport;
+  bool _isTransportStarted = false;
+
+  /// MCPサーバーを起動します。
+  ///
+  /// 指定された[transport]を使用して通信を開始します。
   Future<void> start(Transport transport) async {
-    await transport.start();
+    if (_isTransportStarted) {
+      logInfo('Server is already running');
+      return;
+    }
+
+    _transport = transport;
+    logInfo('Starting MCP server');
+
+    // トランスポートのコールバックを設定
+    _transport!.onMessage = (message) async {
+      final response = await handleMessage(message);
+      if (response != null) {
+        await _transport!.send(response);
+      }
+    };
+
+    _transport!.onError = (error) {
+      logError('Transport error: $error');
+    };
+
+    _transport!.onClose = () {
+      logInfo('Transport closed');
+      if (!_isClosed) {
+        // トランスポートが閉じられた場合、サーバーも閉じる
+        close();
+      }
+    };
+
+    // トランスポートを開始
+    await _transport!.start();
+    _isTransportStarted = true;
+
+    // 通知監視を開始
+    _setupNotificationListener();
+
+    logInfo('MCP server started');
+  }
+
+  /// 通知リスナーをセットアップします。
+  void _setupNotificationListener() {
+    // 通知をトランスポートに送信
+    notifications.listen(
+      (notification) {
+        if (_transport != null && _isTransportStarted) {
+          _transport!.send(notification.notification);
+        }
+      },
+      onError: (error) {
+        logError('Error in notification stream: $error');
+      },
+    );
   }
 
   /// Handles an incoming JSON-RPC message.
@@ -814,11 +873,16 @@ class Server {
       params: notification.params,
     );
 
-    if (_currentClient == null) {
+    // トランスポート経由で直接送信
+    if (_transport != null && _isTransportStarted) {
+      _transport!.send(jsonNotification);
       return;
     }
 
-    _notifications.add(ServerNotification(_currentClient!, jsonNotification));
+    // 後方互換性のために通知キューにも追加
+    if (_currentClient != null) {
+      _notifications.add(ServerNotification(_currentClient!, jsonNotification));
+    }
   }
 
   /// Flag indicating whether the server is closed
@@ -846,6 +910,18 @@ class Server {
     try {
       // 閉じ始めを通知
       _closeStateController.add(true);
+
+      // トランスポートを閉じる
+      if (_transport != null && _isTransportStarted) {
+        try {
+          await _transport!.close();
+          _transport = null;
+          _isTransportStarted = false;
+          logInfo('Transport closed');
+        } catch (e) {
+          logError('Error closing transport: $e');
+        }
+      }
 
       // 各リソースのクリーンアップ
       await _lock.synchronized(() {
