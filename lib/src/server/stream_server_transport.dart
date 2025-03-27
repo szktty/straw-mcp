@@ -14,7 +14,7 @@ import 'package:meta/meta.dart';
 import 'package:straw_mcp/src/json_rpc/codec.dart';
 import 'package:straw_mcp/src/json_rpc/message.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
-import 'package:straw_mcp/src/shared/logging_options.dart';
+import 'package:straw_mcp/src/shared/logging/logging_options.dart';
 import 'package:straw_mcp/src/shared/stdio_buffer.dart';
 import 'package:straw_mcp/src/shared/transport.dart';
 import 'package:synchronized/synchronized.dart';

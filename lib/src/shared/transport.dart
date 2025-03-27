@@ -10,10 +10,10 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
-import 'package:path/path.dart' show dirname;
 import 'package:straw_mcp/src/json_rpc/message.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
-import 'package:straw_mcp/src/shared/logging_options.dart';
+import 'package:straw_mcp/src/shared/logging/logging_options.dart';
+import 'package:straw_mcp/src/shared/logging/logging_mixin.dart';
 
 /// MCP server transport interface.
 ///
@@ -50,12 +50,10 @@ abstract class Transport {
 /// Provides common functionality for all transport implementations,
 /// particularly the callback handling and logging capabilities.
 @internal
-abstract class TransportBase implements Transport {
+abstract class TransportBase with LoggingMixin implements Transport {
   /// Creates a new transport base with optional logging capabilities.
-  TransportBase({this.logging = const LoggingOptions()})
-    : logger = logging.logger,
-      logFilePath = logging.logFilePath {
-    _initializeLogFile();
+  TransportBase({this.logging = const LoggingOptions()}) {
+    initializeLogFile();
   }
 
   /// Message received callback.
@@ -70,17 +68,9 @@ abstract class TransportBase implements Transport {
   /// Logging options for this transport.
   @internal
   final LoggingOptions logging;
-
-  /// Logger for transport events.
-  @internal
-  final Logger? logger;
-
-  /// Path to log file (optional)
-  @internal
-  final String? logFilePath;
-
-  /// File for logging if logFilePath is specified.
-  IOSink? _logFile;
+  
+  @override
+  LoggingOptions get loggingOptions => logging;
 
   /// Whether the transport is running
   bool _isRunning = false;
@@ -109,22 +99,7 @@ abstract class TransportBase implements Transport {
     _onCloseHandler = handler;
   }
 
-  /// Initializes the log file if a path is provided.
-  void _initializeLogFile() {
-    if (logFilePath != null) {
-      try {
-        final logDir = Directory(dirname(logFilePath!));
-        if (!logDir.existsSync()) {
-          logDir.createSync(recursive: true);
-        }
-        final logFileObj = File(logFilePath!);
-        _logFile = logFileObj.openWrite(mode: FileMode.append);
-        log('Initialized log file at $logFilePath');
-      } on Exception catch (e) {
-        logError('Failed to open log file at $logFilePath: $e');
-      }
-    }
-  }
+  // LoggingMixin により initializeLogFile() が提供される
 
   /// Calls the message handler with the given message.
   @protected
@@ -144,54 +119,7 @@ abstract class TransportBase implements Transport {
     _onCloseHandler?.call();
   }
 
-  /// @nodoc
-  /// Logs an error message.
-  @protected
-  @internal
-  void logError(String message) {
-    logger?.severe(message);
-    _writeToLogFile('[ERROR] $message');
-  }
-
-  /// @nodoc
-  /// Logs a warning message.
-  @protected
-  @internal
-  void logWarning(String message) {
-    logger?.warning(message);
-    _writeToLogFile('[WARNING] $message');
-  }
-
-  /// @nodoc
-  /// Logs an informational message.
-  @protected
-  @internal
-  void log(String message) {
-    logger?.info(message);
-    _writeToLogFile('[INFO] $message');
-  }
-
-  /// @nodoc
-  /// Logs a debug message.
-  @protected
-  @internal
-  void logDebug(String message) {
-    logger?.fine(message);
-    _writeToLogFile('[DEBUG] $message');
-  }
-
-  /// Writes a message to the log file if available.
-  void _writeToLogFile(String message) {
-    if (_logFile != null) {
-      try {
-        final timestamp = DateTime.now().toIso8601String();
-        _logFile!.writeln('$timestamp $message');
-      } on Exception catch (e) {
-        // Avoid recursive logging if writing to log file fails
-        logger?.severe('Failed to write to log file: $e');
-      }
-    }
-  }
+  // LoggingMixin によりロギングメソッドが提供される
 
   /// Base implementation of close that handles log file closing.
   @override
@@ -203,17 +131,8 @@ abstract class TransportBase implements Transport {
     _isRunning = false;
     log('Closing transport');
 
-    // Close log file if open
-    if (_logFile != null) {
-      try {
-        await _logFile!.flush();
-        await _logFile!.close();
-        _logFile = null;
-        log('Log file closed');
-      } on Exception catch (e) {
-        logger?.severe('Error closing log file: $e');
-      }
-    }
+    // ログファイルを閉じる
+    await closeLogFile();
 
     // Notify that the transport is closed
     handleClose();

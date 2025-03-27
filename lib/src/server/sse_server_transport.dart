@@ -10,7 +10,7 @@ import 'package:straw_mcp/src/json_rpc/codec.dart';
 import 'package:straw_mcp/src/json_rpc/message.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
 import 'package:straw_mcp/src/server/server.dart';
-import 'package:straw_mcp/src/shared/logging_options.dart';
+import 'package:straw_mcp/src/shared/logging/logging_options.dart';
 import 'package:straw_mcp/src/shared/transport.dart';
 
 /// Configuration options for SSE server.
