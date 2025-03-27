@@ -9,9 +9,11 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 import 'package:straw_mcp/src/mcp/contents.dart';
 import 'package:straw_mcp/src/mcp/tools.dart';
+import 'package:straw_mcp/src/mcp/types.dart';
 import 'package:straw_mcp/src/server/server.dart';
-import 'package:straw_mcp/src/server/stream_server_transport.dart';
 import 'package:straw_mcp/src/shared/stdio_buffer.dart';
+import 'package:straw_mcp/src/shared/transport.dart';
+import 'package:straw_mcp/src/server/stdio_server_transport.dart';
 import 'package:test/test.dart';
 
 // ignore_for_file: avoid_print, avoid_dynamic_calls, avoid_slow_async_io
@@ -34,7 +36,7 @@ Future<String> createTempFile(String content) async {
 }
 
 // Create a simple output sink
-class TestSink implements IOSink {
+class TestSink implements StreamSink<List<int>> {
   final List<int> buffer = [];
 
   @override
@@ -50,27 +52,6 @@ class TestSink implements IOSink {
 
   @override
   Future close() async {}
-
-  @override
-  void write(Object? object) {
-    add(utf8.encode(object.toString()));
-  }
-
-  @override
-  void writeAll(Iterable objects, [String separator = '']) {
-    write(objects.join(separator));
-  }
-
-  @override
-  void writeCharCode(int charCode) {
-    add([charCode]);
-  }
-
-  @override
-  void writeln([Object? object = '']) {
-    write(object);
-    write('\n');
-  }
 
   @override
   Future addStream(Stream<List<int>> stream) {
@@ -91,14 +72,6 @@ class TestSink implements IOSink {
     if (stackTrace != null) {
       stderr.writeln(stackTrace);
     }
-  }
-
-  @override
-  Encoding get encoding => utf8;
-
-  @override
-  set encoding(Encoding value) {
-    // Encoding settings (implementation is empty since this is for testing)
   }
 
   @override
@@ -174,99 +147,11 @@ void main() {
       expect(buffer.isEmpty, isTrue);
     });
 
-    test('実際のMCPサーバーとの通信', () async {
-      // This test uses file-based communication
-
+    test('MCP初期化レスポンスの読み取りシミュレーション', () async {
+      // This test simulates reading an initialization response using ReadBuffer
       final logPath = path.join(tempDir.path, 'server.log');
-      final server = Server('test-server', '1.0.0')
-        // Register a tool for testing
-        ..addTool(
-          Tool(
-            name: 'echo',
-            description: 'Echo back the input',
-            inputSchema: [
-              ToolParameter(
-                name: 'message',
-                type: 'string',
-                required: true,
-                description: 'Message to echo',
-              ),
-            ],
-          ),
-          (request) async {
-            final message = request.params['arguments']['message'] as String;
-            return CallToolResult(
-              content: [TextContent(text: 'Echo: $message')],
-            );
-          },
-        );
 
-      // Set server options
-      final serverOptions = StreamServerTransportOptions.stdio(
-        logger: setupLogger('MCP-Server'),
-        logFilePath: logPath,
-      );
-
-      // Write to a temporary file before creating the test server
-      final testServerPath = path.join(tempDir.path, 'test_server.dart');
-      final serverCode = '''
-      import 'dart:io';
-      import 'package:straw_mcp/src/mcp/contents.dart';
-      import 'package:straw_mcp/src/mcp/tools.dart';
-      import 'package:straw_mcp/src/mcp/types.dart';
-      import 'package:straw_mcp/src/server/server.dart';
-      import 'package:straw_mcp/src/server/stream_server.dart';
-      import 'package:logging/logging.dart';
-
-      void main() async {
-        // ロガーの設定
-        final logger = Logger('TestServer');
-        logger.level = Level.ALL;
-        
-        Logger.root.onRecord.listen((record) {
-          stderr.writeln('\${record.time}: \${record.level.name}: \${record.message}');
-        });
-        
-        // サーバーの作成
-        final server = Server('test-server', '1.0.0');
-        
-        // テスト用のツールを登録
-        server.addTool(
-          Tool(
-            name: 'echo',
-            description: 'Echo back the input',
-            parameters: [
-              ToolParameter(
-                name: 'message',
-                type: 'string',
-                required: true,
-                description: 'Message to echo',
-              ),
-            ],
-          ),
-          (request) async {
-            final message = request.params['arguments']['message'] as String;
-            return CallToolResult(
-              content: [TextContent(text: 'Echo: \$message')],
-            );
-          },
-        );
-        
-        // StreamServerTransportOptionsの設定
-        final options = StreamServerTransportOptions(
-          logger: logger,
-          logFilePath: '${path.join(tempDir.path, 'test_server.log')}',
-        );
-        
-        // サーバーの起動
-        await serveStdio(server, options: options);
-      }
-      ''';
-
-      // This test has been modified to simulate process execution by skipping actual process launch
-      // This is because launching actual processes can cause issues dependent on the test environment
-
-      // Instead, verify the behavior of ReadBuffer
+      // Create ReadBuffer for testing
       final buffer = ReadBuffer();
 
       // Simulate initialize response
@@ -400,5 +285,64 @@ void main() {
       expect(deserialized['method'], equals('test'));
       expect(deserialized['params']['value'], equals(42));
     });
+
+    test('TransportBase基本機能', () {
+      // Create a mock transport that extends TransportBase
+      final mockTransport = _MockTransport();
+
+      // Set handlers
+      bool messageHandlerCalled = false;
+      mockTransport.onMessage = (message) {
+        messageHandlerCalled = true;
+        expect(message, equals('test message'));
+      };
+
+      bool errorHandlerCalled = false;
+      mockTransport.onError = (error) {
+        errorHandlerCalled = true;
+        expect(error.toString(), contains('test error'));
+      };
+
+      bool closeHandlerCalled = false;
+      mockTransport.onClose = () {
+        closeHandlerCalled = false;
+      };
+
+      // Trigger handlers
+      mockTransport.testHandleMessage('test message');
+      mockTransport.testHandleError(Exception('test error'));
+
+      // Verify handlers were called
+      expect(messageHandlerCalled, isTrue);
+      expect(errorHandlerCalled, isTrue);
+    });
   });
+}
+
+// Mock implementation of TransportBase for testing
+class _MockTransport extends TransportBase {
+  _MockTransport() : super(logger: Logger('MockTransport'));
+
+  @override
+  Future<void> start() async {
+    isRunning = true;
+  }
+
+  @override
+  Future<void> send(JsonRpcMessage message) async {
+    // Do nothing for this test
+  }
+
+  // Test methods to trigger handlers
+  void testHandleMessage(String message) {
+    handleMessage(message);
+  }
+
+  void testHandleError(Object error) {
+    handleError(error);
+  }
+
+  void testHandleClose() {
+    handleClose();
+  }
 }
