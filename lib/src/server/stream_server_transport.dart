@@ -19,7 +19,6 @@ import 'package:straw_mcp/src/shared/transport.dart';
 import 'package:synchronized/synchronized.dart';
 
 /// Configuration options for stream server.
-@protected
 class StreamServerTransportOptions {
   /// Creates a new set of stream server options.
   ///
@@ -33,22 +32,6 @@ class StreamServerTransportOptions {
     this.logger,
     this.logFilePath,
   });
-
-  /// Creates a new set of stream server options using standard input/output streams.
-  ///
-  /// - [logger]: Optional logger for error messages
-  /// - [logFilePath]: Optional path to a log file for recording server events
-  factory StreamServerTransportOptions.stdio({
-    Logger? logger,
-    String? logFilePath,
-  }) {
-    return StreamServerTransportOptions(
-      stream: stdin.asBroadcastStream(),
-      sink: stdout,
-      logger: logger,
-      logFilePath: logFilePath,
-    );
-  }
 
   /// Input stream for receiving messages.
   final Stream<List<int>> stream;

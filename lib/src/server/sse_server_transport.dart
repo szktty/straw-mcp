@@ -356,37 +356,3 @@ class SseServerTransport extends TransportBase {
       ..write(json.encode(_codec.encodeResponse(error)));
   }
 }
-
-/// Configures and starts a Server-Sent Events (SSE) server.
-///
-/// Returns a [SseServerTransport] instance.
-SseServerTransport serveSse({
-  String host = 'localhost',
-  int port = 9000,
-  Duration maxIdleTime = const Duration(minutes: 2),
-  Duration maxConnectionTime = const Duration(minutes: 30),
-  Duration heartbeatInterval = const Duration(seconds: 30),
-  Logger? logger,
-  String? logFilePath,
-  void Function()? onServerClose,
-}) {
-  final options = SseServerTransportOptions(
-    host: host,
-    port: port,
-    maxIdleTime: maxIdleTime,
-    maxConnectionTime: maxConnectionTime,
-    heartbeatInterval: heartbeatInterval,
-    logger: logger,
-    logFilePath: logFilePath,
-  );
-
-  final server = SseServerTransport(
-    options: options,
-    onServerClose: onServerClose,
-  );
-
-  // サーバーは非同期で開始
-  server.start();
-
-  return server;
-}

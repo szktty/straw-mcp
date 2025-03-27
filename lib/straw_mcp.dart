@@ -113,10 +113,8 @@ export 'src/server/server.dart'
         withResourceCapabilities,
         withToolCapabilities;
 export 'src/server/sse_server_transport.dart'
-    show SseServerTransport, SseServerTransportOptions, serveSse;
+    show SseServerTransport, SseServerTransportOptions;
+export 'src/server/stdio_server_transport.dart' show StdioServerTransport;
 export 'src/server/stream_server_transport.dart'
-    show
-        StreamServerTransport,
-        StreamServerTransportContextFunction,
-        StreamServerTransportOptions,
-        serveStdio;
+    show StreamServerTransport, StreamServerTransportOptions;
+export 'src/shared/transport.dart' show Transport;

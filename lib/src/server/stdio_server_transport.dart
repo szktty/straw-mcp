@@ -20,15 +20,15 @@ class StdioServerTransport extends StreamServerTransport {
   ///
   /// - [logger]: Optional logger for error messages
   /// - [logFilePath]: Optional path to a log file for recording server events
-  StdioServerTransport({
-    Logger? logger,
-    String? logFilePath,
-  }) : super(
-    options: StreamServerTransportOptions.stdio(
-      logger: logger,
-      logFilePath: logFilePath,
-    ),
-  );
+  StdioServerTransport({Logger? logger, String? logFilePath})
+    : super(
+        options: StreamServerTransportOptions(
+          stream: stdin.asBroadcastStream(),
+          sink: stdout,
+          logger: logger,
+          logFilePath: logFilePath,
+        ),
+      );
 
   /// Subscriptions for process signals.
   StreamSubscription<ProcessSignal>? _sigintSubscription;
@@ -121,14 +121,8 @@ class StdioServerTransport extends StreamServerTransport {
 /// - [logFilePath]: Optional path to a log file for recording server events
 ///
 /// Returns a [StdioServerTransport] instance.
-StdioServerTransport serveStdio({
-  Logger? logger,
-  String? logFilePath,
-}) {
-  final server = StdioServerTransport(
-    logger: logger,
-    logFilePath: logFilePath,
-  );
+StdioServerTransport serveStdio({Logger? logger, String? logFilePath}) {
+  final server = StdioServerTransport(logger: logger, logFilePath: logFilePath);
 
   // サーバーを起動
   server.start();

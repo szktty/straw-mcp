@@ -48,6 +48,7 @@ abstract class Transport {
 ///
 /// Provides common functionality for all transport implementations,
 /// particularly the callback handling and logging capabilities.
+@internal
 abstract class TransportBase implements Transport {
   /// Creates a new transport base with optional logging capabilities.
   TransportBase({this.logger, this.logFilePath}) {
