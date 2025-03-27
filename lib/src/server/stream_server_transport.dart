@@ -14,6 +14,7 @@ import 'package:meta/meta.dart';
 import 'package:straw_mcp/src/json_rpc/codec.dart';
 import 'package:straw_mcp/src/json_rpc/message.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
+import 'package:straw_mcp/src/shared/logging_options.dart';
 import 'package:straw_mcp/src/shared/stdio_buffer.dart';
 import 'package:straw_mcp/src/shared/transport.dart';
 import 'package:synchronized/synchronized.dart';
@@ -22,15 +23,13 @@ import 'package:synchronized/synchronized.dart';
 class StreamServerTransportOptions {
   /// Creates a new set of stream server options.
   ///
-  /// - [logger]: Optional logger for error messages
-  /// - [logFilePath]: Optional path to a log file for recording server events
   /// - [stream]: Input stream for receiving messages
   /// - [sink]: Output sink for sending responses
-  StreamServerTransportOptions({
+  /// - [logging]: Optional logging configuration for the transport
+  const StreamServerTransportOptions({
     required this.stream,
     required this.sink,
-    this.logger,
-    this.logFilePath,
+    this.logging = const LoggingOptions(),
   });
 
   /// Input stream for receiving messages.
@@ -39,11 +38,8 @@ class StreamServerTransportOptions {
   /// Output sink for sending responses.
   final StreamSink<List<int>> sink;
 
-  /// Logger for error messages.
-  final Logger? logger;
-
-  /// Path to log file (optional)
-  final String? logFilePath;
+  /// Logging options for transport events.
+  final LoggingOptions logging;
 }
 
 /// MCP server implementation that communicates via input/output streams.
@@ -54,7 +50,7 @@ abstract class StreamServerTransport extends TransportBase {
   StreamServerTransport({required StreamServerTransportOptions options})
     : stream = options.stream,
       sink = options.sink,
-      super(logger: options.logger, logFilePath: options.logFilePath);
+      super(logging: options.logging);
 
   /// Input stream for receiving messages.
   final Stream<List<int>> stream;

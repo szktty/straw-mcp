@@ -9,6 +9,7 @@ import 'dart:io';
 
 import 'package:logging/logging.dart';
 import 'package:straw_mcp/src/server/stream_server_transport.dart';
+import 'package:straw_mcp/src/shared/logging_options.dart';
 import 'package:straw_mcp/src/shared/transport.dart';
 
 /// MCP server implementation that communicates via standard input/output streams.
@@ -18,15 +19,13 @@ import 'package:straw_mcp/src/shared/transport.dart';
 class StdioServerTransport extends StreamServerTransport {
   /// Creates a new stdio-based MCP server.
   ///
-  /// - [logger]: Optional logger for error messages
-  /// - [logFilePath]: Optional path to a log file for recording server events
-  StdioServerTransport({Logger? logger, String? logFilePath})
+  /// - [logging]: Optional logging configuration for the transport
+  StdioServerTransport({LoggingOptions logging = const LoggingOptions()})
     : super(
         options: StreamServerTransportOptions(
           stream: stdin.asBroadcastStream(),
           sink: stdout,
-          logger: logger,
-          logFilePath: logFilePath,
+          logging: logging,
         ),
       );
 

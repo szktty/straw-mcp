@@ -10,19 +10,19 @@ import 'package:straw_mcp/src/json_rpc/codec.dart';
 import 'package:straw_mcp/src/json_rpc/message.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
 import 'package:straw_mcp/src/server/server.dart';
+import 'package:straw_mcp/src/shared/logging_options.dart';
 import 'package:straw_mcp/src/shared/transport.dart';
 
 /// Configuration options for SSE server.
 class SseServerTransportOptions {
   /// Creates a new set of SSE server options.
-  SseServerTransportOptions({
+  const SseServerTransportOptions({
     this.host = 'localhost',
     this.port = 9000,
     this.maxIdleTime = const Duration(minutes: 2),
     this.maxConnectionTime = const Duration(minutes: 30),
     this.heartbeatInterval = const Duration(seconds: 30),
-    this.logger,
-    this.logFilePath,
+    this.logging = const LoggingOptions(),
   });
 
   /// The hostname to bind to.
@@ -40,11 +40,8 @@ class SseServerTransportOptions {
   /// Interval for sending heartbeats.
   final Duration heartbeatInterval;
 
-  /// Logger for server events.
-  final Logger? logger;
-
-  /// Path to log file (optional)
-  final String? logFilePath;
+  /// Logging options for transport events.
+  final LoggingOptions logging;
 }
 
 /// HTTP server implementation for MCP using Server-Sent Events (SSE).
@@ -60,7 +57,7 @@ class SseServerTransport extends TransportBase {
        maxIdleTime = options.maxIdleTime,
        maxConnectionTime = options.maxConnectionTime,
        heartbeatInterval = options.heartbeatInterval,
-       super(logger: options.logger, logFilePath: options.logFilePath);
+       super(logging: options.logging);
 
   /// Callback triggered when the server is closed
   final void Function()? onServerClose;

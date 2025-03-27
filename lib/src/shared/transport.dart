@@ -13,6 +13,7 @@ import 'package:meta/meta.dart';
 import 'package:path/path.dart' show dirname;
 import 'package:straw_mcp/src/json_rpc/message.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
+import 'package:straw_mcp/src/shared/logging_options.dart';
 
 /// MCP server transport interface.
 ///
@@ -51,7 +52,9 @@ abstract class Transport {
 @internal
 abstract class TransportBase implements Transport {
   /// Creates a new transport base with optional logging capabilities.
-  TransportBase({this.logger, this.logFilePath}) {
+  TransportBase({this.logging = const LoggingOptions()})
+    : logger = logging.logger,
+      logFilePath = logging.logFilePath {
     _initializeLogFile();
   }
 
@@ -64,10 +67,16 @@ abstract class TransportBase implements Transport {
   /// Close callback.
   void Function()? _onCloseHandler;
 
+  /// Logging options for this transport.
+  @internal
+  final LoggingOptions logging;
+
   /// Logger for transport events.
+  @internal
   final Logger? logger;
 
   /// Path to log file (optional)
+  @internal
   final String? logFilePath;
 
   /// File for logging if logFilePath is specified.
