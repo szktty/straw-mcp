@@ -114,18 +114,3 @@ class StdioServerTransport extends StreamServerTransport {
     await super.close();
   }
 }
-
-/// Starts an MCP server using standard input/output streams.
-///
-/// - [logger]: Optional logger for error messages
-/// - [logFilePath]: Optional path to a log file for recording server events
-///
-/// Returns a [StdioServerTransport] instance.
-StdioServerTransport serveStdio({Logger? logger, String? logFilePath}) {
-  final server = StdioServerTransport(logger: logger, logFilePath: logFilePath);
-
-  // サーバーを起動
-  server.start();
-
-  return server;
-}
