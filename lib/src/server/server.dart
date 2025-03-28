@@ -89,12 +89,14 @@ class ServerOptions {
     this.enforceStrictCapabilities = false,
     this.instructions,
     this.logging = const LoggingOptions(),
+    this.timeout,
   });
 
   final ServerCapabilities? capabilities;
   final bool enforceStrictCapabilities;
   final String? instructions;
   final LoggingOptions logging;
+  final Duration? timeout;
 }
 
 /// Core implementation of an MCP server.
