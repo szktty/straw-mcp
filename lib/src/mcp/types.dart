@@ -326,7 +326,7 @@ class ServerCapabilities {
     );
   }
 
-  Map<String, dynamic>? experimental;
+  dynamic experimental;
   bool logging;
   PromptCapabilities? prompts;
   ResourceCapabilities? resources;

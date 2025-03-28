@@ -114,3 +114,4 @@ export 'src/server/stream_server_transport.dart'
     show StreamServerTransport, StreamServerTransportOptions;
 export 'src/shared/logging/logging_options.dart' show LoggingOptions;
 export 'src/shared/transport.dart' show Transport;
+export 'src/server/builder/builder.dart' show ServerBuilder;
