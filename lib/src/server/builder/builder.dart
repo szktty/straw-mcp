@@ -50,7 +50,7 @@ class ServerBuilder {
   String? name;
 
   /// The version of the server.
-  String version = Server.latestProtocolVersion;
+  String? version;
 
   /// Whether to enforce strict capabilities.
   bool enforceStrictCapabilities = false;
@@ -126,7 +126,10 @@ class ServerBuilder {
     if (name == null || name!.isEmpty) {
       throw ArgumentError('Server name is required');
     }
-    
+    if (version == null || version!.isEmpty) {
+      throw ArgumentError('Server version is required');
+    }
+
     // Build server options
     final options = ServerOptions(
       capabilities: _capabilitiesBuilder.build(),
@@ -140,7 +143,7 @@ class ServerBuilder {
     }
 
     // Create the server
-    final server = Server(name: name!, version: version, options: options);
+    final server = Server(name: name!, version: version!, options: options);
 
     // Add all configured elements
     for (final tool in _tools) {
