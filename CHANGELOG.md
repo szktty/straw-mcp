@@ -1,9 +1,10 @@
 ## develop
 
 - Reimplement server and transport classes.
-  - `ProtocolHandler` class as `Server` class.
-  - `StreamServer` class as `StreamServerTransport` class and `StdioServerTransport` class.
-  - `SseServer` class as `SseServerTransport` class.
+  - Add `Transport` interface.
+  - Replace `ProtocolHandler` class with `Server` class.
+  - Replace `StreamServer` class with `StreamServerTransport` class and `StdioServerTransport` class.
+  - Replace `SseServer` class with `SseServerTransport` class.
 - Add `LoggingNotification` class.
 - Add `LoggingLevel` enum.
 - Add `withArray` function.
