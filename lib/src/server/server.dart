@@ -91,7 +91,6 @@ class ServerOptions {
     this.logging = const LoggingOptions(),
   });
 
-  // TODO: ServerCapabilities の見直し
   final ServerCapabilities? capabilities;
   final bool enforceStrictCapabilities;
   final String? instructions;
@@ -110,9 +109,16 @@ class Server with LoggingMixin {
   /// - [version]: The version of the server implementation
   /// - [options]: Optional server configuration options
   /// - [logger]: Optional logger for server events
-  Server({required this.name, required this.version, required this.options}) {
+  Server({
+    required this.name,
+    required this.options,
+    this.version = latestProtocolVersion,
+  }) {
     initializeLogFile();
   }
+
+  static const latestProtocolVersion = '2024-11-05';
+  static const jsonrpcVersion = '2.0';
 
   /// Name of the server.
   final String name;
@@ -874,7 +880,7 @@ class Server with LoggingMixin {
           logError('Error closing transport: $e');
         }
       }
-      
+
       // ログファイルを閉じる
       await closeLogFile();
 

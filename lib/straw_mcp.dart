@@ -104,19 +104,13 @@ export 'src/server/server.dart'
         ResourceHandlerFunction,
         ResourceTemplateHandlerFunction,
         Server,
-        ServerOption,
+        ServerOptions,
         ServerTool,
-        ToolHandlerFunction,
-        withInstructions,
-        withLogging,
-        withPromptCapabilities,
-        withResourceCapabilities,
-        withToolCapabilities;
+        ToolHandlerFunction;
 export 'src/server/sse_server_transport.dart'
     show SseServerTransport, SseServerTransportOptions;
 export 'src/server/stdio_server_transport.dart' show StdioServerTransport;
 export 'src/server/stream_server_transport.dart'
     show StreamServerTransport, StreamServerTransportOptions;
-export 'src/shared/transport.dart' show Transport;
-export 'src/shared/logging/logging_mixin.dart' show LoggingMixin;
 export 'src/shared/logging/logging_options.dart' show LoggingOptions;
+export 'src/shared/transport.dart' show Transport;
