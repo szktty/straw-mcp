@@ -58,6 +58,25 @@ class CallToolResult extends Result {
   /// - [meta]: Optional metadata for the result
   CallToolResult({required this.content, this.isError = false, super.meta});
 
+  /// Creates a text tool result with the given text content.
+  ///
+  /// A convenience function for creating a successful tool result
+  /// with a single text content item.
+  factory CallToolResult.text(String text) {
+    return CallToolResult(content: [TextContent(text: text)]);
+  }
+
+  /// Creates an error tool result with the given error message.
+  ///
+  /// A convenience function for creating an error tool result
+  /// with a single text content item containing the error message.
+  factory CallToolResult.error(String errorMessage) {
+    return CallToolResult(
+      content: [TextContent(text: errorMessage)],
+      isError: true,
+    );
+  }
+
   /// Creates a call tool result from a JSON map.
   factory CallToolResult.fromJson(Map<String, dynamic> json) {
     return CallToolResult(
@@ -92,25 +111,6 @@ class CallToolResult extends Result {
 
     return result;
   }
-}
-
-/// Creates a text tool result with the given text content.
-///
-/// A convenience function for creating a successful tool result
-/// with a single text content item.
-CallToolResult newToolResultText(String text) {
-  return CallToolResult(content: [TextContent(text: text)]);
-}
-
-/// Creates an error tool result with the given error message.
-///
-/// A convenience function for creating an error tool result
-/// with a single text content item containing the error message.
-CallToolResult newToolResultError(String errorMessage) {
-  return CallToolResult(
-    content: [TextContent(text: errorMessage)],
-    isError: true,
-  );
 }
 
 /// Notification indicating that the tool list has changed.

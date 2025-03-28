@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 
 import 'package:straw_mcp/src/json_rpc/message.dart';
+import 'package:straw_mcp/src/server/builder/builder.dart';
 import 'package:straw_mcp/src/shared/logging/logging_mixin.dart';
 import 'package:straw_mcp/src/mcp/logging.dart';
 import 'package:straw_mcp/src/mcp/prompts.dart';
@@ -105,6 +106,43 @@ class ServerOptions {
 /// request handling, notification management, and capability negotiation.
 /// This is the main server-side implementation of the Model Context Protocol.
 class Server with LoggingMixin {
+  /// Creates a new server using the builder pattern.
+  ///
+  /// This static factory method uses the ServerBuilder to create and configure
+  /// an MCP server with a fluent, declarative API.
+  ///
+  /// Example:
+  /// ```dart
+  /// final server = Server.build(
+  ///   (b) => b
+  ///     ..name = 'example-server'
+  ///     ..version = '1.0.0'
+  ///     ..logging()
+  ///     ..tool(
+  ///       (t) => t
+  ///         ..name = 'calculator'
+  ///         ..description = 'Simple calculator'
+  ///         ..number(name: 'a', required: true)
+  ///         ..number(name: 'b', required: true)
+  ///         ..string(
+  ///           name: 'operation',
+  ///           required: true,
+  ///           enumValues: ['add', 'subtract', 'multiply', 'divide']
+  ///         )
+  ///         ..handler = (request) async {
+  ///           // Calculator implementation
+  ///         },
+  ///     ),
+  /// );
+  /// ```
+  ///
+  /// [updates] - A function that configures the server builder with the desired options.
+  static Server build(void Function(ServerBuilder) updates) {
+    final builder = ServerBuilder();
+    updates(builder);
+    return builder.build();
+  }
+
   /// Creates a new MCP server.
   ///
   /// - [name]: The name of the server to advertise to clients

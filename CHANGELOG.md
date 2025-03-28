@@ -14,8 +14,10 @@
 - Restruct `JsonRpcNotification` class.
 - `Tool` constructor validates `name`.
 - Rename `Tool.parameters` to `Tool.inputSchema`.
-- Remove `serveStdio` function. Use `Server.start()` with `StdioServerTransport` object instead.
-- Remove `serveSse` function. Use `Server.start()` with `SseServerTransport` object instead.
+- Remove `serveStdio` function. Use `Server.start` method with `StdioServerTransport` object instead.
+- Remove `serveSse` function. Use `Server.start` method with `SseServerTransport` object instead.
+- Remove `newToolResultText` function. Use `CallToolResult.text` method instead.
+- Remove `newToolResultError` function. Use `CallToolResult.error` method instead.
 
 ## 0.5.0
 

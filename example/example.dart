@@ -118,37 +118,47 @@ Future<void> runBoth() async {
   }
 }
 
-/// Creates and returns an MCP server with echo functionality.
+/// Creates and returns an MCP server with echo functionality using Builder pattern.
 Server createEchoServer() {
-  return Server('MCP Echo Server', '1.0.0', [
-      withToolCapabilities(listChanged: true),
-      withResourceCapabilities(subscribe: false, listChanged: true),
-      withPromptCapabilities(listChanged: true),
-      withLogging(),
-      withInstructions(
-        'This is a simple MCP echo server that demonstrates basic functionality.',
-      ),
-    ])
-    // Add a simple echo tool
-    ..addTool(
-      newTool('echo', [
-        withDescription('Echoes back a message.'),
-        withString('message', [
-          required(),
-          description('Message to echo back'),
-        ]),
-      ]),
-      (request) async {
-        try {
-          final message = request.params['arguments']['message'] as String;
-          print('Received echo request: "$message"');
-          return newToolResultText('Echo: $message');
-        } catch (e) {
-          print('Error in echo tool: $e');
-          return newToolResultError('Error processing echo request: $e');
-        }
-      },
-    );
+  return Server.build(
+    (b) =>
+        b
+          ..name = 'MCP Echo Server'
+          ..version = '1.0.0'
+          ..capabilities(
+            (c) =>
+                c
+                  ..tool(listChanged: true)
+                  ..resource(subscribe: false, listChanged: true)
+                  ..prompt(listChanged: true),
+          )
+          ..logging()
+          ..instructions =
+              'This is a simple MCP echo server that demonstrates basic functionality.'
+          ..tool(
+            (t) =>
+                t
+                  ..name = 'echo'
+                  ..description = 'Echoes back a message.'
+                  ..string(
+                    name: 'message',
+                    required: true,
+                    description: 'Message to echo back',
+                  )
+                  ..handler = (request) async {
+                    try {
+                      final message = request.arguments['message'] as String;
+                      print('Received echo request: "$message"');
+                      return CallToolResult.text('Echo: $message');
+                    } catch (e) {
+                      print('Error in echo tool: $e');
+                      return CallToolResult.error(
+                        'Error processing echo request: $e',
+                      );
+                    }
+                  },
+          ),
+  );
 }
 
 /// Common client logic to connect and use the echo tool.
