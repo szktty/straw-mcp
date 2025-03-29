@@ -42,6 +42,12 @@ export 'src/mcp/resources.dart'
         SubscribeRequest,
         TextResourceContents,
         UnsubscribeRequest;
+export 'src/mcp/roots.dart'
+    show
+        ListRootsRequest,
+        ListRootsResult,
+        Root,
+        RootsListChangedNotification;
 export 'src/mcp/tools.dart'
     show
         CallToolRequest,
@@ -66,6 +72,13 @@ export 'src/mcp/tools.dart'
         withNumber,
         withObject,
         withString;
+export 'src/mcp/sampling.dart'
+    show
+        CreateMessageRequest,
+        CreateMessageResult,
+        ModelHint,
+        ModelPreferences,
+        SamplingMessage;
 export 'src/mcp/types.dart'
     show
         CancelledNotification,
@@ -85,6 +98,8 @@ export 'src/mcp/types.dart'
         RequestId,
         ResourceCapabilities,
         Result,
+        RootsCapabilities,
+        SamplingCapabilities,
         ServerCapabilities,
         ToolCapabilities,
         latestProtocolVersion;

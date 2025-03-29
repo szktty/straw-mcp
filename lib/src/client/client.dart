@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:straw_mcp/src/mcp/prompts.dart';
 import 'package:straw_mcp/src/mcp/resources.dart';
+import 'package:straw_mcp/src/mcp/roots.dart';
+import 'package:straw_mcp/src/mcp/sampling.dart';
 import 'package:straw_mcp/src/mcp/tools.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
 
@@ -67,6 +69,12 @@ abstract class Client {
 
   /// Requests completion options for a given reference and argument.
   Future<CompleteResult> complete(CompleteRequest request);
+
+  /// Lists available roots from the server.
+  Future<ListRootsResult> listRoots(ListRootsRequest request);
+
+  /// Creates a message by sampling an LLM through the client.
+  Future<CreateMessageResult> createMessage(CreateMessageRequest request);
 
   /// Closes the client connection.
   Future<void> close();
