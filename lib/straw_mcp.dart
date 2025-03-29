@@ -43,11 +43,14 @@ export 'src/mcp/resources.dart'
         TextResourceContents,
         UnsubscribeRequest;
 export 'src/mcp/roots.dart'
+    show ListRootsRequest, ListRootsResult, Root, RootsListChangedNotification;
+export 'src/mcp/sampling.dart'
     show
-        ListRootsRequest,
-        ListRootsResult,
-        Root,
-        RootsListChangedNotification;
+        CreateMessageRequest,
+        CreateMessageResult,
+        ModelHint,
+        ModelPreferences,
+        SamplingMessage;
 export 'src/mcp/tools.dart'
     show
         CallToolRequest,
@@ -56,29 +59,7 @@ export 'src/mcp/tools.dart'
         ListToolsResult,
         Tool,
         ToolListChangedNotification,
-        ToolOption,
-        ToolParameter,
-        ToolParameterOption,
-        defaultValue,
-        description,
-        enumValues,
-        newTool,
-        newToolResultError,
-        newToolResultText,
-        required,
-        withArray,
-        withBoolean,
-        withDescription,
-        withNumber,
-        withObject,
-        withString;
-export 'src/mcp/sampling.dart'
-    show
-        CreateMessageRequest,
-        CreateMessageResult,
-        ModelHint,
-        ModelPreferences,
-        SamplingMessage;
+        ToolParameter;
 export 'src/mcp/types.dart'
     show
         CancelledNotification,
@@ -113,6 +94,7 @@ export 'src/mcp/utils.dart'
         numberToolResult,
         textResourceContents,
         textToolResult;
+export 'src/server/builder/builder.dart' show ServerBuilder;
 export 'src/server/server.dart'
     show
         PromptHandlerFunction,
@@ -129,4 +111,3 @@ export 'src/server/stream_server_transport.dart'
     show StreamServerTransport, StreamServerTransportOptions;
 export 'src/shared/logging/logging_options.dart' show LoggingOptions;
 export 'src/shared/transport.dart' show Transport;
-export 'src/server/builder/builder.dart' show ServerBuilder;
