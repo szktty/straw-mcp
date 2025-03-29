@@ -1,4 +1,4 @@
-/// Example of a standard input/output MCP handler.
+/// Example of a standard input/output MCP server.
 ///
 /// This example demonstrates how to create and run an MCP server that
 /// communicates via standard input and output streams.
@@ -19,7 +19,7 @@ void main() async {
 
   // Create a basic MCP server with some tools
   final handler =
-      ProtocolHandler('MCP Example Server', '0.1.0', [
+      Server('MCP Example Server', '0.1.0', [
           withToolCapabilities(listChanged: true),
           withResourceCapabilities(subscribe: true, listChanged: true),
           withPromptCapabilities(listChanged: true),
@@ -59,6 +59,6 @@ void main() async {
   // Serve the MCP server via stdio
   await serveStdio(
     handler,
-    options: StreamServerOptions.stdio(logger: Logger('StreamServer')),
+    options: StreamServerTransportOptions.stdio(logger: Logger('StreamServer')),
   );
 }

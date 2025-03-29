@@ -41,7 +41,7 @@ Future<void> runServer({
   }
 
   // Create MCP server
-  final handler = ProtocolHandler('memo-mcp', '1.0.0', [
+  final server = Server('memo-mcp', '1.0.0', [
     withToolCapabilities(listChanged: true),
     withResourceCapabilities(subscribe: false, listChanged: true),
     withLogging(),
@@ -59,16 +59,14 @@ Future<void> runServer({
   );
 
   // Send initial message as log notification
-  handler.logInfo(
-    'MemoMCP server started. Attempting to connect to MemoApp...',
-  );
+  server.logInfo('MemoMCP server started. Attempting to connect to MemoApp...');
 
   // Register tools and resources
   final tools = MemoTools(apiClient);
-  tools.register(handler);
+  tools.register(server);
 
   final resources = MemoResources(apiClient);
-  resources.register(handler);
+  resources.register(server);
 
   // Periodic connection check (after connection is established)
   Timer? pingTimer;
@@ -99,7 +97,7 @@ Future<void> runServer({
     Future<void> handleJsonRpcMessage(String line) async {
       try {
         // Process message
-        final response = await handler.handleMessage(line);
+        final response = await server.handleMessage(line);
         if (response != null) {
           // If there's a response, write it to standard output
           stdout.writeln(response);
@@ -166,7 +164,7 @@ Future<void> runServer({
           await apiClient.close();
 
           // Close the server
-          handler.close();
+          server.close();
 
           // Terminate the process (with a slight delay to allow remaining processing to complete)
           Timer(const Duration(seconds: 1), () {
@@ -183,7 +181,7 @@ Future<void> runServer({
           subscription?.cancel();
           pingTimer?.cancel();
           apiClient.close();
-          handler.close();
+          server.close();
 
           // Terminate the process
           exit(1);
@@ -198,7 +196,7 @@ Future<void> runServer({
     // Clean up resources
     pingTimer?.cancel();
     await apiClient.close();
-    handler.close();
+    server.close();
 
     // Re-throw exception
     rethrow;

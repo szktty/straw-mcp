@@ -11,9 +11,9 @@ class MemoResources {
   MemoResources(this.apiClient);
 
   /// Register resources
-  void register(ProtocolHandler handler) {
+  void register(Server server) {
     // memo://list resource
-    handler.addResource(
+    server.addResource(
       Resource(
         uri: 'memo://list',
         name: 'Memo List',

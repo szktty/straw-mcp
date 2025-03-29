@@ -42,6 +42,15 @@ export 'src/mcp/resources.dart'
         SubscribeRequest,
         TextResourceContents,
         UnsubscribeRequest;
+export 'src/mcp/roots.dart'
+    show ListRootsRequest, ListRootsResult, Root, RootsListChangedNotification;
+export 'src/mcp/sampling.dart'
+    show
+        CreateMessageRequest,
+        CreateMessageResult,
+        ModelHint,
+        ModelPreferences,
+        SamplingMessage;
 export 'src/mcp/tools.dart'
     show
         CallToolRequest,
@@ -50,22 +59,7 @@ export 'src/mcp/tools.dart'
         ListToolsResult,
         Tool,
         ToolListChangedNotification,
-        ToolOption,
-        ToolParameter,
-        ToolParameterOption,
-        defaultValue,
-        description,
-        enumValues,
-        newTool,
-        newToolResultError,
-        newToolResultText,
-        required,
-        withArray,
-        withBoolean,
-        withDescription,
-        withNumber,
-        withObject,
-        withString;
+        ToolParameter;
 export 'src/mcp/types.dart'
     show
         CancelledNotification,
@@ -85,6 +79,8 @@ export 'src/mcp/types.dart'
         RequestId,
         ResourceCapabilities,
         Result,
+        RootsCapabilities,
+        SamplingCapabilities,
         ServerCapabilities,
         ToolCapabilities,
         latestProtocolVersion;
@@ -98,24 +94,20 @@ export 'src/mcp/utils.dart'
         numberToolResult,
         textResourceContents,
         textToolResult;
-export 'src/server/protocol_handler.dart'
+export 'src/server/builder/builder.dart' show ServerBuilder;
+export 'src/server/server.dart'
     show
         PromptHandlerFunction,
-        ProtocolHandler,
         ResourceHandlerFunction,
         ResourceTemplateHandlerFunction,
-        ServerOption,
+        Server,
+        ServerOptions,
         ServerTool,
-        ToolHandlerFunction,
-        withInstructions,
-        withLogging,
-        withPromptCapabilities,
-        withResourceCapabilities,
-        withToolCapabilities;
-export 'src/server/sse_server.dart' show SseServer, SseServerOptions, serveSse;
-export 'src/server/stream_server.dart'
-    show
-        StreamServer,
-        StreamServerContextFunction,
-        StreamServerOptions,
-        serveStdio;
+        ToolHandlerFunction;
+export 'src/server/sse_server_transport.dart'
+    show SseServerTransport, SseServerTransportOptions;
+export 'src/server/stdio_server_transport.dart' show StdioServerTransport;
+export 'src/server/stream_server_transport.dart'
+    show StreamServerTransport, StreamServerTransportOptions;
+export 'src/shared/logging/logging_options.dart' show LoggingOptions;
+export 'src/shared/transport.dart' show Transport;

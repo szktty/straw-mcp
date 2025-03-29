@@ -11,9 +11,9 @@ class MemoTools {
   MemoTools(this.apiClient);
 
   /// Register tools
-  void register(ProtocolHandler handler) {
+  void register(Server server) {
     // create-memo tool
-    handler.addTool(
+    server.addTool(
       newTool('create-memo', [
         withDescription('Creates a new memo'),
         withString('title', [required(), description('Title of the memo')]),
@@ -23,7 +23,7 @@ class MemoTools {
     );
 
     // list-memos tool
-    handler.addTool(
+    server.addTool(
       newTool('list-memos', [
         withDescription('Retrieves a list of saved memos'),
       ]),
@@ -31,7 +31,7 @@ class MemoTools {
     );
 
     // delete-memo tool
-    handler.addTool(
+    server.addTool(
       newTool('delete-memo', [
         withDescription('Deletes a memo with the specified ID'),
         withString('id', [required(), description('ID of the memo to delete')]),
@@ -42,15 +42,15 @@ class MemoTools {
     // Monitor API client state changes
     apiClient.stateStream.listen((state) {
       if (state == ServerState.connected) {
-        handler.logInfo('Connected to MemoApp');
+        server.logInfo('Connected to MemoApp');
       } else if (state == ServerState.reconnecting) {
-        handler.logWarning(
+        server.logWarning(
           'Disconnected from MemoApp. Attempting to reconnect...',
         );
       } else if (state == ServerState.waiting) {
         if (apiClient.reconnectAttempts > 1 &&
             apiClient.reconnectAttempts % 5 == 0) {
-          handler.logInfo(
+          server.logInfo(
             'Waiting for connection to MemoApp (attempts: ${apiClient.reconnectAttempts})',
           );
         }

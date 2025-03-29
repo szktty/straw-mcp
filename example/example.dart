@@ -42,10 +42,18 @@ void main(List<String> args) async {
 Future<void> runServer() async {
   print('Starting echo server...');
 
-  final handler = createEchoServer();
+  final server = createEchoServer();
 
-  print('Serving via stdio...');
-  await serveStdio(handler);
+  // Create a stdio transport
+  final transport = StdioServerTransport();
+
+  // Start the server with the transport
+  print('Starting server with stdio transport...');
+  await server.start(transport);
+
+  // Keep the server running
+  print('Server running, waiting for requests...');
+  // This will keep running until the transport is closed
 }
 
 /// Runs only the MCP client.
@@ -83,15 +91,15 @@ Future<void> runBoth() async {
   serverProcess.stderr.transform(utf8.decoder).listen(stderr.write);
 
   // Give the server a moment to start up
-  await Future.delayed(Duration(milliseconds: 500));
+  await Future<void>.delayed(Duration(milliseconds: 500));
 
   print('Server launched, starting client...');
 
   // Create a client that connects to the server process
   final client = StreamClient(
     options: StreamClientOptions(
-      inputStream: serverProcess.stdout,
-      outputSink: serverProcess.stdin,
+      stream: serverProcess.stdout,
+      sink: serverProcess.stdin,
     ),
   );
 
@@ -110,41 +118,51 @@ Future<void> runBoth() async {
   }
 }
 
-/// Creates and returns an MCP server with echo functionality.
-ProtocolHandler createEchoServer() {
-  return ProtocolHandler('MCP Echo Server', '1.0.0', [
-      withToolCapabilities(listChanged: true),
-      withResourceCapabilities(subscribe: false, listChanged: true),
-      withPromptCapabilities(listChanged: true),
-      withLogging(),
-      withInstructions(
-        'This is a simple MCP echo server that demonstrates basic functionality.',
-      ),
-    ])
-    // Add a simple echo tool
-    ..addTool(
-      newTool('echo', [
-        withDescription('Echoes back a message.'),
-        withString('message', [
-          required(),
-          description('Message to echo back'),
-        ]),
-      ]),
-      (request) async {
-        try {
-          final message = request.params['arguments']['message'] as String;
-          print('Received echo request: "$message"');
-          return newToolResultText('Echo: $message');
-        } catch (e) {
-          print('Error in echo tool: $e');
-          return newToolResultError('Error processing echo request: $e');
-        }
-      },
-    );
+/// Creates and returns an MCP server with echo functionality using Builder pattern.
+Server createEchoServer() {
+  return Server.build(
+    (b) =>
+        b
+          ..name = 'MCP Echo Server'
+          ..version = '1.0.0'
+          ..capabilities(
+            (c) =>
+                c
+                  ..tool(listChanged: true)
+                  ..resource(subscribe: false, listChanged: true)
+                  ..prompt(listChanged: true),
+          )
+          ..logging()
+          ..instructions =
+              'This is a simple MCP echo server that demonstrates basic functionality.'
+          ..tool(
+            (t) =>
+                t
+                  ..name = 'echo'
+                  ..description = 'Echoes back a message.'
+                  ..string(
+                    name: 'message',
+                    required: true,
+                    description: 'Message to echo back',
+                  )
+                  ..handler = (request) async {
+                    try {
+                      final message = request.arguments['message'] as String;
+                      print('Received echo request: "$message"');
+                      return CallToolResult.text('Echo: $message');
+                    } catch (e) {
+                      print('Error in echo tool: $e');
+                      return CallToolResult.error(
+                        'Error processing echo request: $e',
+                      );
+                    }
+                  },
+          ),
+  );
 }
 
 /// Common client logic to connect and use the echo tool.
-Future<void> connectAndUseEchoTool(Client client) async {
+Future<void> connectAndUseEchoTool(StreamClient client) async {
   print('Connecting to server...');
 
   // Initialize the connection
@@ -158,6 +176,9 @@ Future<void> connectAndUseEchoTool(Client client) async {
       capabilities: ClientCapabilities(),
     ),
   );
+
+  // Connect to the transport first
+  await client.connect();
 
   print(
     'Connected to server: ${initResult.serverInfo.name} ${initResult.serverInfo.version}',

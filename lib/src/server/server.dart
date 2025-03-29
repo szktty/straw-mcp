@@ -7,12 +7,18 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 
 import 'package:straw_mcp/src/json_rpc/message.dart';
+import 'package:straw_mcp/src/server/builder/builder.dart';
+import 'package:straw_mcp/src/shared/logging/logging_mixin.dart';
 import 'package:straw_mcp/src/mcp/logging.dart';
 import 'package:straw_mcp/src/mcp/prompts.dart';
 import 'package:straw_mcp/src/mcp/resources.dart';
 import 'package:straw_mcp/src/mcp/tools.dart';
 import 'package:straw_mcp/src/mcp/types.dart';
 import 'package:straw_mcp/src/mcp/utils.dart';
+import 'package:straw_mcp/src/server/sse_server_transport.dart';
+import 'package:straw_mcp/src/server/stdio_server_transport.dart';
+import 'package:straw_mcp/src/shared/logging/logging_options.dart';
+import 'package:straw_mcp/src/shared/transport.dart';
 import 'package:synchronized/synchronized.dart';
 
 /// Handler function for resource requests.
@@ -77,60 +83,21 @@ class ServerNotification {
   final JsonRpcNotification notification;
 }
 
-/// Function type for server options.
-typedef ServerOption = void Function(ProtocolHandler server);
+/// Server options for configuring the server's behavior and capabilities.
+class ServerOptions {
+  ServerOptions({
+    this.capabilities,
+    this.enforceStrictCapabilities = false,
+    this.instructions,
+    this.logging = const LoggingOptions(),
+    this.timeout,
+  });
 
-/// Creates a server option for resource capabilities.
-///
-/// - [subscribe]: Whether the server supports subscribing to resource updates.
-/// - [listChanged]: Whether the server supports notifying clients of resource list changes.
-ServerOption withResourceCapabilities({
-  required bool subscribe,
-  required bool listChanged,
-}) {
-  return (ProtocolHandler server) {
-    server.capabilities.resources = ResourceCapabilities(
-      subscribe: subscribe,
-      listChanged: listChanged,
-    );
-  };
-}
-
-/// Creates a server option for prompt capabilities.
-///
-/// - [listChanged]: Whether the server supports notifying clients of prompt list changes.
-ServerOption withPromptCapabilities({required bool listChanged}) {
-  return (ProtocolHandler server) {
-    server.capabilities.prompts = PromptCapabilities(listChanged: listChanged);
-  };
-}
-
-/// Creates a server option for tool capabilities.
-///
-/// - [listChanged]: Whether the server supports notifying clients of tool list changes.
-ServerOption withToolCapabilities({required bool listChanged}) {
-  return (ProtocolHandler server) {
-    server.capabilities.tools = ToolCapabilities(listChanged: listChanged);
-  };
-}
-
-/// Creates a server option for enabling logging support.
-///
-/// Enables the server to send log messages to clients via notifications.
-ServerOption withLogging() {
-  return (ProtocolHandler server) {
-    server.capabilities.logging = true;
-  };
-}
-
-/// Creates a server option for setting server usage instructions.
-///
-/// These instructions can be provided to the client during initialization
-/// to help guide the LLM in understanding how to use the server.
-ServerOption withInstructions(String instructions) {
-  return (ProtocolHandler server) {
-    server.instructions = instructions;
-  };
+  final ServerCapabilities? capabilities;
+  final bool enforceStrictCapabilities;
+  final String? instructions;
+  final LoggingOptions logging;
+  final Duration? timeout;
 }
 
 /// Core implementation of an MCP server.
@@ -138,21 +105,60 @@ ServerOption withInstructions(String instructions) {
 /// Handles all protocol-level interactions with clients, including
 /// request handling, notification management, and capability negotiation.
 /// This is the main server-side implementation of the Model Context Protocol.
-class ProtocolHandler {
+class Server with LoggingMixin {
+  /// Creates a new server using the builder pattern.
+  ///
+  /// This static factory method uses the ServerBuilder to create and configure
+  /// an MCP server with a fluent, declarative API.
+  ///
+  /// Example:
+  /// ```dart
+  /// final server = Server.build(
+  ///   (b) => b
+  ///     ..name = 'example-server'
+  ///     ..version = '1.0.0'
+  ///     ..logging()
+  ///     ..tool(
+  ///       (t) => t
+  ///         ..name = 'calculator'
+  ///         ..description = 'Simple calculator'
+  ///         ..number(name: 'a', required: true)
+  ///         ..number(name: 'b', required: true)
+  ///         ..string(
+  ///           name: 'operation',
+  ///           required: true,
+  ///           enumValues: ['add', 'subtract', 'multiply', 'divide']
+  ///         )
+  ///         ..handler = (request) async {
+  ///           // Calculator implementation
+  ///         },
+  ///     ),
+  /// );
+  /// ```
+  ///
+  /// [updates] - A function that configures the server builder with the desired options.
+  static Server build(void Function(ServerBuilder) updates) {
+    final builder = ServerBuilder();
+    updates(builder);
+    return builder.build();
+  }
+
   /// Creates a new MCP server.
   ///
   /// - [name]: The name of the server to advertise to clients
   /// - [version]: The version of the server implementation
   /// - [options]: Optional server configuration options
   /// - [logger]: Optional logger for server events
-  ProtocolHandler(
-    this.name,
-    this.version, [
-    List<ServerOption>? options,
-    this.logger,
-  ]) {
-    options?.forEach((option) => option(this));
+  Server({
+    required this.name,
+    required this.options,
+    this.version = latestProtocolVersion,
+  }) {
+    initializeLogFile();
   }
+
+  static const latestProtocolVersion = '2024-11-05';
+  static const jsonrpcVersion = '2.0';
 
   /// Name of the server.
   final String name;
@@ -160,8 +166,11 @@ class ProtocolHandler {
   /// Version of the server.
   final String version;
 
+  final ServerOptions options;
+
   /// Logger for server events.
-  final Logger? logger;
+  @override
+  LoggingOptions get loggingOptions => options.logging;
 
   /// Instructions for using the server.
   String instructions = '';
@@ -188,6 +197,67 @@ class ProtocolHandler {
   NotificationContext? _currentClient;
   final Lock _lock = Lock();
   bool _initialized = false;
+
+  // トランスポート関連
+  Transport? _transport;
+  bool _isTransportStarted = false;
+
+  /// MCPサーバーを起動します。
+  ///
+  /// 指定された[transport]を使用して通信を開始します。
+  Future<void> start(Transport transport) async {
+    if (_isTransportStarted) {
+      logInfo('Server is already running');
+      return;
+    }
+
+    _transport = transport;
+    logInfo('Starting MCP server');
+
+    // トランスポートのコールバックを設定
+    _transport!.onMessage = (message) async {
+      final response = await handleMessage(message);
+      if (response != null) {
+        await _transport!.send(response);
+      }
+    };
+
+    _transport!.onError = (error) {
+      logError('Transport error: $error');
+    };
+
+    _transport!.onClose = () {
+      logInfo('Transport closed');
+      if (!_isClosed) {
+        // トランスポートが閉じられた場合、サーバーも閉じる
+        close();
+      }
+    };
+
+    // トランスポートを開始
+    await _transport!.start();
+    _isTransportStarted = true;
+
+    // 通知監視を開始
+    _setupNotificationListener();
+
+    logInfo('MCP server started');
+  }
+
+  /// 通知リスナーをセットアップします。
+  void _setupNotificationListener() {
+    // 通知をトランスポートに送信
+    notifications.listen(
+      (notification) {
+        if (_transport != null && _isTransportStarted) {
+          _transport!.send(notification.notification);
+        }
+      },
+      onError: (error) {
+        logError('Error in notification stream: $error');
+      },
+    );
+  }
 
   /// Handles an incoming JSON-RPC message.
   Future<JsonRpcMessage?> handleMessage(String message) async {
@@ -753,7 +823,7 @@ class ProtocolHandler {
     }
   }
 
-  /// Adds a notification handler.
+  /// Adds a notification server.
   void addNotificationHandler(
     String method,
     NotificationHandlerFunction handler,
@@ -771,20 +841,7 @@ class ProtocolHandler {
   /// Gets the stream of server notifications.
   Stream<ServerNotification> get notifications => _notifications.stream;
 
-  /// Logs an informational message
-  void logInfo(String message) {
-    logger?.info(message);
-  }
-
-  /// Logs a warning message
-  void logWarning(String message) {
-    logger?.warning(message);
-  }
-
-  /// Logs an error message
-  void logError(String message) {
-    logger?.severe(message);
-  }
+  // LoggingMixin によりロギングメソッドが提供される
 
   /// Sends a log message notification to the client.
   ///
@@ -814,11 +871,16 @@ class ProtocolHandler {
       params: notification.params,
     );
 
-    if (_currentClient == null) {
+    // トランスポート経由で直接送信
+    if (_transport != null && _isTransportStarted) {
+      _transport!.send(jsonNotification);
       return;
     }
 
-    _notifications.add(ServerNotification(_currentClient!, jsonNotification));
+    // 後方互換性のために通知キューにも追加
+    if (_currentClient != null) {
+      _notifications.add(ServerNotification(_currentClient!, jsonNotification));
+    }
   }
 
   /// Flag indicating whether the server is closed
@@ -846,6 +908,21 @@ class ProtocolHandler {
     try {
       // 閉じ始めを通知
       _closeStateController.add(true);
+
+      // トランスポートを閉じる
+      if (_transport != null && _isTransportStarted) {
+        try {
+          await _transport!.close();
+          _transport = null;
+          _isTransportStarted = false;
+          logInfo('Transport closed');
+        } catch (e) {
+          logError('Error closing transport: $e');
+        }
+      }
+
+      // ログファイルを閉じる
+      await closeLogFile();
 
       // 各リソースのクリーンアップ
       await _lock.synchronized(() {

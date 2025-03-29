@@ -58,6 +58,25 @@ class CallToolResult extends Result {
   /// - [meta]: Optional metadata for the result
   CallToolResult({required this.content, this.isError = false, super.meta});
 
+  /// Creates a text tool result with the given text content.
+  ///
+  /// A convenience function for creating a successful tool result
+  /// with a single text content item.
+  factory CallToolResult.text(String text) {
+    return CallToolResult(content: [TextContent(text: text)]);
+  }
+
+  /// Creates an error tool result with the given error message.
+  ///
+  /// A convenience function for creating an error tool result
+  /// with a single text content item containing the error message.
+  factory CallToolResult.error(String errorMessage) {
+    return CallToolResult(
+      content: [TextContent(text: errorMessage)],
+      isError: true,
+    );
+  }
+
   /// Creates a call tool result from a JSON map.
   factory CallToolResult.fromJson(Map<String, dynamic> json) {
     return CallToolResult(
@@ -92,25 +111,6 @@ class CallToolResult extends Result {
 
     return result;
   }
-}
-
-/// Creates a text tool result with the given text content.
-///
-/// A convenience function for creating a successful tool result
-/// with a single text content item.
-CallToolResult newToolResultText(String text) {
-  return CallToolResult(content: [TextContent(text: text)]);
-}
-
-/// Creates an error tool result with the given error message.
-///
-/// A convenience function for creating an error tool result
-/// with a single text content item containing the error message.
-CallToolResult newToolResultError(String errorMessage) {
-  return CallToolResult(
-    content: [TextContent(text: errorMessage)],
-    isError: true,
-  );
 }
 
 /// Notification indicating that the tool list has changed.
@@ -324,136 +324,4 @@ class Tool extends Annotated {
 
     return result;
   }
-}
-
-/// Function type for tool options.
-typedef ToolOption = void Function(Tool tool);
-
-/// Function type for tool parameter options.
-typedef ToolParameterOption = void Function(ToolParameter param);
-
-/// Creates a new tool with the given options.
-Tool newTool(String name, [List<ToolOption> options = const []]) {
-  final tool = Tool(name: name);
-
-  for (final option in options) {
-    option(tool);
-  }
-
-  return tool;
-}
-
-/// Adds a description to a tool.
-ToolOption withDescription(String description) {
-  return (Tool tool) {
-    tool.description = description;
-  };
-}
-
-/// Adds a string parameter to a tool.
-ToolOption withString(
-  String name, [
-  List<ToolParameterOption> options = const [],
-]) {
-  return (Tool tool) {
-    final param = ToolParameter(name: name, type: 'string');
-
-    for (final option in options) {
-      option(param);
-    }
-
-    tool.inputSchema.add(param);
-  };
-}
-
-/// Adds a number parameter to a tool.
-ToolOption withNumber(
-  String name, [
-  List<ToolParameterOption> options = const [],
-]) {
-  return (Tool tool) {
-    final param = ToolParameter(name: name, type: 'number');
-
-    for (final option in options) {
-      option(param);
-    }
-
-    tool.inputSchema.add(param);
-  };
-}
-
-/// Adds a boolean parameter to a tool.
-ToolOption withBoolean(
-  String name, [
-  List<ToolParameterOption> options = const [],
-]) {
-  return (Tool tool) {
-    final param = ToolParameter(name: name, type: 'boolean');
-
-    for (final option in options) {
-      option(param);
-    }
-
-    tool.inputSchema.add(param);
-  };
-}
-
-/// Adds a list parameter to a tool.
-ToolOption withArray(
-  String name, [
-  List<ToolParameterOption> options = const [],
-]) {
-  return (Tool tool) {
-    final param = ToolParameter(name: name, type: 'array');
-
-    for (final option in options) {
-      option(param);
-    }
-
-    tool.inputSchema.add(param);
-  };
-}
-
-/// Adds a map parameter to a tool.
-ToolOption withObject(
-  String name, [
-  List<ToolParameterOption> options = const [],
-]) {
-  return (Tool tool) {
-    final param = ToolParameter(name: name, type: 'object');
-
-    for (final option in options) {
-      option(param);
-    }
-
-    tool.inputSchema.add(param);
-  };
-}
-
-/// Sets a parameter as required.
-ToolParameterOption required() {
-  return (ToolParameter param) {
-    param.required = true;
-  };
-}
-
-/// Adds a description to a parameter.
-ToolParameterOption description(String desc) {
-  return (ToolParameter param) {
-    param.description = desc;
-  };
-}
-
-/// Adds enum values to a parameter.
-ToolParameterOption enumValues(List<String> values) {
-  return (ToolParameter param) {
-    param.enumValues = values;
-  };
-}
-
-/// Sets a default value for a parameter.
-ToolParameterOption defaultValue(dynamic value) {
-  return (ToolParameter param) {
-    param.defaultValue = value;
-  };
 }
