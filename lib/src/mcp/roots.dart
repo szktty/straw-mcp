@@ -5,7 +5,7 @@ import 'package:straw_mcp/src/mcp/types.dart';
 
 /// Request for listing available roots.
 class ListRootsRequest extends Request {
-  ListRootsRequest() : super('roots/list', {});
+  ListRootsRequest() : super(method: 'roots/list', params: {});
 }
 
 /// Result of the list roots request.
@@ -65,5 +65,5 @@ class Root {
 /// Notification indicating that the root list has changed.
 class RootsListChangedNotification extends Notification {
   RootsListChangedNotification()
-    : super('notifications/roots/list_changed', null);
+    : super(method: 'notifications/roots/list_changed', params: null);
 }

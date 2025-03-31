@@ -3,7 +3,7 @@ import 'package:straw_mcp/src/mcp/types.dart';
 /// Request for listing available resources.
 class ListResourcesRequest extends PaginatedRequest {
   ListResourcesRequest({Cursor? cursor})
-    : super('resources/list', cursor: cursor);
+    : super(method: 'resources/list', cursor: cursor);
 }
 
 /// Result of the list resources request.
@@ -37,7 +37,7 @@ class ListResourcesResult extends PaginatedResult {
 /// Request for listing available resource templates.
 class ListResourceTemplatesRequest extends PaginatedRequest {
   ListResourceTemplatesRequest({Cursor? cursor})
-    : super('resources/templates/list', cursor: cursor);
+    : super(method: 'resources/templates/list', cursor: cursor);
 }
 
 /// Result of the list resource templates request.
@@ -76,7 +76,7 @@ class ListResourceTemplatesResult extends PaginatedResult {
 /// Request for reading a specific resource.
 class ReadResourceRequest extends Request {
   ReadResourceRequest({required String uri, Map<String, dynamic>? arguments})
-    : super('resources/read', {
+    : super(method: 'resources/read', params: {
         'uri': uri,
         if (arguments != null) 'arguments': arguments,
       });
@@ -112,25 +112,25 @@ class ReadResourceResult extends Result {
 /// Notification indicating that the resource list has changed.
 class ResourceListChangedNotification extends Notification {
   ResourceListChangedNotification()
-    : super('notifications/resources/list_changed', null);
+    : super(method: 'notifications/resources/list_changed', params: null);
 }
 
 /// Request for subscribing to resource updates.
 class SubscribeRequest extends Request {
   SubscribeRequest({required String uri})
-    : super('resources/subscribe', {'uri': uri});
+    : super(method: 'resources/subscribe', params: {'uri': uri});
 }
 
 /// Request for unsubscribing from resource updates.
 class UnsubscribeRequest extends Request {
   UnsubscribeRequest({required String uri})
-    : super('resources/unsubscribe', {'uri': uri});
+    : super(method: 'resources/unsubscribe', params: {'uri': uri});
 }
 
 /// Notification indicating that a resource has been updated.
 class ResourceUpdatedNotification extends Notification {
   ResourceUpdatedNotification({required this.uri})
-    : super('notifications/resources/updated', {'uri': uri});
+    : super(method: 'notifications/resources/updated', params: {'uri': uri});
 
   final String uri;
 }

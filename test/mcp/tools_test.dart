@@ -224,13 +224,22 @@ void main() {
       expect(request.params['arguments']['b'], equals(3));
 
       // Convert to JsonRpc request
-      final jsonRpcRequest = JsonRpcRequest('2.0', 1, request.params, request);
+      final jsonRpcRequest = JsonRpcRequest(
+        jsonrpc: '2.0',
+        id: 1,
+        params: request.params,
+        request: request,
+      );
 
       // Simulate server-side processing
       final result = CallToolResult(content: [TextContent(text: '8')]);
 
       // Convert to JsonRpc response
-      final jsonRpcResponse = JsonRpcResponse('2.0', 1, result.toJson());
+      final jsonRpcResponse = JsonRpcResponse(
+        jsonrpc: '2.0',
+        id: 1,
+        result: result.toJson(),
+      );
 
       // Check response JSON format
       final responseJson = jsonRpcResponse.toJson();

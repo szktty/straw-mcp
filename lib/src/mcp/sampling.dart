@@ -16,7 +16,7 @@ class CreateMessageRequest extends Request {
     required this.maxTokens,
     this.stopSequences,
     this.metadata,
-  }) : super('sampling/createMessage', {
+  }) : super(method: 'sampling/createMessage', params: {
           'messages': messages.map((m) => m.toJson()).toList(),
           if (modelPreferences != null)
             'modelPreferences': modelPreferences.toJson(),

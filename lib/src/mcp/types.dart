@@ -1,8 +1,4 @@
-/// Core types and interfaces for the Model Context Protocol (MCP).
-///
-/// This file defines the fundamental types used in the MCP protocol, including
-/// JSON-RPC messages, requests, responses, and MCP-specific types.
-library;
+import 'package:straw_mcp/src/json/jsonable.dart';
 
 /// Latest version of the MCP protocol.
 const String latestProtocolVersion = '2024-11-05';
@@ -10,15 +6,8 @@ const String latestProtocolVersion = '2024-11-05';
 /// JSON-RPC version used by MCP.
 const String jsonRpcVersion = '2.0';
 
-/// Standard JSON-RPC error codes
-const int parseError = -32700;
-const int invalidRequest = -32600;
-const int methodNotFound = -32601;
-const int invalidParams = -32602;
-const int internalError = -32603;
-
 /// Base class for all JSON-RPC messages in the MCP protocol.
-abstract class JsonRpcMessage {}
+abstract class JsonRpcMessage implements Jsonable {}
 
 /// Type for request IDs, which can be strings or integers.
 typedef RequestId = Object;
@@ -33,28 +22,53 @@ typedef Cursor = String;
 typedef Params = Map<String, dynamic>;
 
 /// Base class for all MCP requests.
-class Request {
-  Request(this.method, this.params);
+class Request implements Jsonable {
+  Request({
+    required this.method,
+    this.params = const {},
+  });
 
   final String method;
   final Map<String, dynamic> params;
+
+  /// Converts the request to JSON.
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'method': method,
+      'params': params,
+    };
+  }
 }
 
 /// Base class for all MCP notifications.
-class Notification {
-  Notification(this.method, this.params);
+class Notification implements Jsonable {
+  Notification({
+    required this.method,
+    this.params,
+  });
 
   final String method;
   final dynamic params;
+
+  /// Converts the notification to JSON.
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'method': method,
+      'params': params,
+    };
+  }
 }
 
 /// Base class for all MCP results.
-class Result {
+class Result implements Jsonable {
   Result({this.meta});
 
   Map<String, dynamic>? meta;
 
   /// Converts the result to JSON.
+  @override
   Map<String, dynamic> toJson() {
     final result = <String, dynamic>{};
     if (meta != null) {
@@ -66,20 +80,25 @@ class Result {
 
 /// Represents a JSON-RPC request.
 class JsonRpcRequest implements JsonRpcMessage {
-  JsonRpcRequest(this.jsonrpc, this.id, this.params, this.request);
+  JsonRpcRequest({
+    required this.jsonrpc,
+    required this.id,
+    required this.params,
+    required this.request,
+  });
 
   /// Creates a JSON-RPC request from a JSON map.
   factory JsonRpcRequest.fromJson(Map<String, dynamic> json) {
     final req = Request(
-      json['method'] as String,
-      json['params'] as Map<String, dynamic>? ?? {},
+      method: json['method'] as String,
+      params: json['params'] as Map<String, dynamic>? ?? {},
     );
 
     return JsonRpcRequest(
-      json['jsonrpc'] as String,
-      json['id'] as RequestId,
-      json['params'],
-      req,
+      jsonrpc: json['jsonrpc'] as String,
+      id: json['id'] as RequestId,
+      params: json['params'],
+      request: req,
     );
   }
 
@@ -89,6 +108,7 @@ class JsonRpcRequest implements JsonRpcMessage {
   final Request request;
 
   /// Converts the request to a JSON map.
+  @override
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'jsonrpc': jsonrpc,
@@ -123,6 +143,7 @@ class JsonRpcNotification implements JsonRpcMessage {
   final dynamic params;
 
   /// Converts the notification to a JSON map.
+  @override
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'jsonrpc': version,
@@ -134,14 +155,18 @@ class JsonRpcNotification implements JsonRpcMessage {
 
 /// Represents a successful JSON-RPC response.
 class JsonRpcResponse implements JsonRpcMessage {
-  JsonRpcResponse(this.jsonrpc, this.id, this.result);
+  JsonRpcResponse({
+    required this.jsonrpc,
+    required this.id,
+    required this.result,
+  });
 
   /// Creates a JSON-RPC response from a JSON map.
   factory JsonRpcResponse.fromJson(Map<String, dynamic> json) {
     return JsonRpcResponse(
-      json['jsonrpc'] as String,
-      json['id'] as RequestId,
-      json['result'],
+      jsonrpc: json['jsonrpc'] as String,
+      id: json['id'] as RequestId,
+      result: json['result'],
     );
   }
 
@@ -150,6 +175,7 @@ class JsonRpcResponse implements JsonRpcMessage {
   final dynamic result;
 
   /// Converts the response to a JSON map.
+  @override
   Map<String, dynamic> toJson() {
     return <String, dynamic>{'jsonrpc': jsonrpc, 'id': id, 'result': result};
   }
@@ -157,16 +183,20 @@ class JsonRpcResponse implements JsonRpcMessage {
 
 /// Represents an error JSON-RPC response.
 class JsonRpcError implements JsonRpcMessage {
-  JsonRpcError(this.jsonrpc, this.id, this.error);
+  JsonRpcError({
+    required this.jsonrpc,
+    required this.id,
+    required this.error,
+  });
 
   /// Creates a JSON-RPC error from a JSON map.
   factory JsonRpcError.fromJson(Map<String, dynamic> json) {
     final errorJson = json['error'] as Map<String, dynamic>;
 
     return JsonRpcError(
-      json['jsonrpc'] as String,
-      json['id'] as RequestId?,
-      JsonRpcErrorDetail(
+      jsonrpc: json['jsonrpc'] as String,
+      id: json['id'] as RequestId?,
+      error: JsonRpcErrorDetail(
         code: errorJson['code'] as int,
         message: errorJson['message'] as String,
         data: errorJson['data'],
@@ -179,6 +209,7 @@ class JsonRpcError implements JsonRpcMessage {
   final JsonRpcErrorDetail error;
 
   /// Converts the error to a JSON map.
+  @override
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'jsonrpc': jsonrpc,
@@ -189,7 +220,7 @@ class JsonRpcError implements JsonRpcMessage {
 }
 
 /// Detailed error information for JSON-RPC errors.
-class JsonRpcErrorDetail {
+class JsonRpcErrorDetail implements Jsonable {
   JsonRpcErrorDetail({required this.code, required this.message, this.data});
 
   final int code;
@@ -197,6 +228,7 @@ class JsonRpcErrorDetail {
   final dynamic data;
 
   /// Converts the error detail to a JSON map.
+  @override
   Map<String, dynamic> toJson() {
     final result = <String, dynamic>{'code': code, 'message': message};
 
@@ -214,14 +246,17 @@ class EmptyResult extends Result {}
 /// Notification for cancelling a previous request.
 class CancelledNotification extends Notification {
   CancelledNotification(RequestId requestId, {String? reason})
-    : super('cancelled', {
-        'requestId': requestId,
-        if (reason != null) 'reason': reason,
-      });
+    : super(
+        method: 'notifications/cancelled',
+        params: {
+          'requestId': requestId,
+          if (reason != null) 'reason': reason,
+        },
+      );
 }
 
 /// Client capabilities for the MCP protocol.
-class ClientCapabilities {
+class ClientCapabilities implements Jsonable {
   ClientCapabilities({this.experimental, this.roots, this.sampling});
 
   /// Creates client capabilities from a JSON map.
@@ -246,6 +281,7 @@ class ClientCapabilities {
   SamplingCapabilities? sampling;
 
   /// Converts the client capabilities to a JSON map.
+  @override
   Map<String, dynamic> toJson() {
     final result = <String, dynamic>{};
 
@@ -266,19 +302,31 @@ class ClientCapabilities {
 }
 
 /// Capabilities related to root resources.
-class RootsCapabilities {
+class RootsCapabilities implements Jsonable {
   RootsCapabilities({this.listChanged = false});
 
   final bool listChanged;
+
+  /// Converts the root capabilities to a JSON map.
+  @override
+  Map<String, dynamic> toJson() {
+    return {'listChanged': listChanged};
+  }
 }
 
 /// Capabilities related to LLM sampling.
-class SamplingCapabilities {
+class SamplingCapabilities implements Jsonable {
   SamplingCapabilities();
+  
+  /// Converts the sampling capabilities to a JSON map.
+  @override
+  Map<String, dynamic> toJson() {
+    return {};
+  }
 }
 
 /// Server capabilities for the MCP protocol.
-class ServerCapabilities {
+class ServerCapabilities implements Jsonable {
   ServerCapabilities({
     this.experimental,
     this.logging = false,
@@ -333,6 +381,7 @@ class ServerCapabilities {
   ToolCapabilities? tools;
 
   /// Converts the server capabilities to a JSON map.
+  @override
   Map<String, dynamic> toJson() {
     final result = <String, dynamic>{};
 
@@ -364,29 +413,50 @@ class ServerCapabilities {
 }
 
 /// Capabilities related to prompts.
-class PromptCapabilities {
+class PromptCapabilities implements Jsonable {
   PromptCapabilities({this.listChanged = false});
 
   final bool listChanged;
+
+  /// Converts the prompt capabilities to a JSON map.
+  @override
+  Map<String, dynamic> toJson() {
+    return {'listChanged': listChanged};
+  }
 }
 
 /// Capabilities related to resources.
-class ResourceCapabilities {
+class ResourceCapabilities implements Jsonable {
   ResourceCapabilities({this.subscribe = false, this.listChanged = false});
 
   final bool subscribe;
   final bool listChanged;
+
+  /// Converts the resource capabilities to a JSON map.
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'subscribe': subscribe,
+      'listChanged': listChanged,
+    };
+  }
 }
 
 /// Capabilities related to tools.
-class ToolCapabilities {
+class ToolCapabilities implements Jsonable {
   ToolCapabilities({this.listChanged = false});
 
   final bool listChanged;
+
+  /// Converts the tool capabilities to a JSON map.
+  @override
+  Map<String, dynamic> toJson() {
+    return {'listChanged': listChanged};
+  }
 }
 
 /// Information about an MCP implementation.
-class Implementation {
+class Implementation implements Jsonable {
   Implementation({required this.name, required this.version});
 
   /// Creates implementation info from a JSON map.
@@ -401,6 +471,7 @@ class Implementation {
   final String version;
 
   /// Converts the implementation info to a JSON map.
+  @override
   Map<String, dynamic> toJson() {
     return <String, dynamic>{'name': name, 'version': version};
   }
@@ -412,11 +483,14 @@ class InitializeRequest extends Request {
     required String protocolVersion,
     required ClientCapabilities capabilities,
     required Implementation clientInfo,
-  }) : super('initialize', {
-         'protocolVersion': protocolVersion,
-         'capabilities': capabilities.toJson(),
-         'clientInfo': clientInfo.toJson(),
-       });
+  }) : super(
+         method: 'initialize',
+         params: {
+           'protocolVersion': protocolVersion,
+           'capabilities': capabilities.toJson(),
+           'clientInfo': clientInfo.toJson(),
+         },
+       );
 
   /// Creates an initialize request from a JSON map.
   factory InitializeRequest.fromJson(Map<String, dynamic> json) {
@@ -482,12 +556,28 @@ class InitializeResult extends Result {
 
 /// Notification sent after initialization is complete.
 class InitializedNotification extends Notification {
-  InitializedNotification() : super('initialized', null);
+  InitializedNotification() : super(
+    method: 'notifications/initialized',
+    params: null,
+  );
+
+  /// Creates an initialized notification from a JSON map.
+  factory InitializedNotification.fromJson(Map<String, dynamic> json) {
+    return InitializedNotification();
+  }
 }
 
 /// Request for pinging the server.
 class PingRequest extends Request {
-  PingRequest() : super('ping', {});
+  PingRequest() : super(
+    method: 'ping',
+    params: {},
+  );
+
+  /// Creates a ping request from a JSON map.
+  factory PingRequest.fromJson(Map<String, dynamic> json) {
+    return PingRequest();
+  }
 }
 
 /// Notification for reporting progress of a long-running operation.
@@ -496,17 +586,25 @@ class ProgressNotification extends Notification {
     required ProgressToken progressToken,
     required double progress,
     double? total,
-  }) : super('progress', {
-         'progressToken': progressToken,
-         'progress': progress,
-         if (total != null) 'total': total,
-       });
+  }) : super(
+         method: 'notifications/progress',
+         params: {
+           'progressToken': progressToken,
+           'progress': progress,
+           if (total != null) 'total': total,
+         },
+       );
 }
 
 /// Base class for paginated requests.
 class PaginatedRequest extends Request {
-  PaginatedRequest(String method, {Cursor? cursor})
-    : super(method, {if (cursor != null) 'cursor': cursor});
+  PaginatedRequest({
+    required String method,
+    Cursor? cursor,
+  }) : super(
+        method: method,
+        params: cursor != null ? {'cursor': cursor} : {},
+      );
 }
 
 /// Base class for paginated results.

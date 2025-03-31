@@ -7,7 +7,7 @@ import 'package:straw_mcp/src/mcp/types.dart';
 
 /// Request for listing available prompts.
 class ListPromptsRequest extends PaginatedRequest {
-  ListPromptsRequest({Cursor? cursor}) : super('prompts/list', cursor: cursor);
+  ListPromptsRequest({Cursor? cursor}) : super(method: 'prompts/list', cursor: cursor);
 }
 
 /// Result of the list prompts request.
@@ -41,7 +41,7 @@ class ListPromptsResult extends PaginatedResult {
 /// Request for getting a specific prompt.
 class GetPromptRequest extends Request {
   GetPromptRequest({required String name, Map<String, dynamic>? arguments})
-    : super('prompts/get', {
+    : super(method: 'prompts/get', params: {
         'name': name,
         if (arguments != null) 'arguments': arguments,
       });
@@ -85,7 +85,7 @@ GetPromptResult newGetPromptResult(String title, List<PromptMessage> messages) {
 /// Notification indicating that the prompt list has changed.
 class PromptListChangedNotification extends Notification {
   PromptListChangedNotification()
-    : super('notifications/prompts/list_changed', null);
+    : super(method: 'notifications/prompts/list_changed', params: null);
 }
 
 /// Represents a prompt in the MCP protocol.

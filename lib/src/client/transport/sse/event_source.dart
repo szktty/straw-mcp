@@ -1,7 +1,7 @@
 /// Event source implementation for Server-Sent Events.
 ///
-/// This file provides an implementation of the EventSource API for Dart,
-/// compatible with the W3C specification for server-sent events.
+/// このファイルでは、Server-Sent Eventsを処理するためのEventSourceのDart実装を提供します。
+/// W3C仕様に準拠したイベントソース処理を行います。
 library;
 
 import 'dart:async';

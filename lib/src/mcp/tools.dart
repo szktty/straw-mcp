@@ -7,7 +7,7 @@ import 'package:straw_mcp/src/mcp/types.dart';
 
 /// Request for listing available tools.
 class ListToolsRequest extends PaginatedRequest {
-  ListToolsRequest({Cursor? cursor}) : super('tools/list', cursor: cursor);
+  ListToolsRequest({Cursor? cursor}) : super(method: 'tools/list', cursor: cursor);
 }
 
 /// Result of the list tools request.
@@ -41,7 +41,7 @@ class ListToolsResult extends PaginatedResult {
 /// Request for calling a tool.
 class CallToolRequest extends Request {
   CallToolRequest({required this.name, required this.arguments})
-    : super('tools/call', {'name': name, 'arguments': arguments});
+    : super(method: 'tools/call', params: {'name': name, 'arguments': arguments});
 
   final String name;
   final Map<String, dynamic> arguments;
@@ -116,7 +116,7 @@ class CallToolResult extends Result {
 /// Notification indicating that the tool list has changed.
 class ToolListChangedNotification extends Notification {
   ToolListChangedNotification()
-    : super('notifications/tools/list_changed', null);
+    : super(method: 'notifications/tools/list_changed', params: null);
 }
 
 /// Represents a tool parameter.

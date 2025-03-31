@@ -7,9 +7,6 @@ export 'src/client/client.dart'
         LoggingLevel,
         McpError,
         SetLevelRequest;
-export 'src/client/sse/sse_client.dart' show SseClient;
-export 'src/client/sse/sse_client_transport.dart' show SseClientOptions;
-export 'src/client/stream_client.dart' show StreamClient, StreamClientOptions;
 export 'src/mcp/contents.dart'
     show Content, EmbeddedResource, ImageContent, TextContent;
 export 'src/mcp/logging.dart' show LoggingMessageNotification;
